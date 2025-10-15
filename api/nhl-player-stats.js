@@ -22,17 +22,22 @@ export default async function handler(req, res) {
         // We will iterate over these categories to build our consolidated player objects.
         const statCategories = [
             'goals', 'assists', 'points', 'plusMinus', 'powerPlayGoals', 
-            'shorthandedGoals', 'shots', 'hits', 'blockedShots', 'pim'
+            'shorthandedGoals', 'shots', 'hits', 'blockedShots', 'penaltyMinutes' // Corrected 'pim' to 'penaltyMinutes'
         ];
 
         // We process gamesPlayed separately as it's a core stat for every player.
         const gamesPlayedData = data.gamesPlayed || [];
         gamesPlayedData.forEach(playerEntry => {
             try {
+                if (!playerEntry || !playerEntry.id) return;
                 const playerId = playerEntry.id;
+                // Add safety checks for name properties
+                const firstName = playerEntry.firstName?.default || '';
+                const lastName = playerEntry.lastName?.default || '';
+
                 playerStats[playerId] = {
                     id: playerId,
-                    name: `${playerEntry.firstName.default} ${playerEntry.lastName.default}`,
+                    name: `${firstName} ${lastName}`.trim(),
                     headshot: playerEntry.headshot,
                     team: playerEntry.teamAbbrevs,
                     position: playerEntry.positionCode,
@@ -51,12 +56,16 @@ export default async function handler(req, res) {
             if (data[category] && Array.isArray(data[category])) {
                 data[category].forEach(playerEntry => {
                     try {
+                        if (!playerEntry || !playerEntry.id) return;
                         const playerId = playerEntry.id;
+
                         // If a player appears in a stat category but not in gamesPlayed (rare), add them.
                         if (!playerStats[playerId]) {
+                             const firstName = playerEntry.firstName?.default || '';
+                             const lastName = playerEntry.lastName?.default || '';
                              playerStats[playerId] = {
                                 id: playerId,
-                                name: `${playerEntry.firstName.default} ${playerEntry.lastName.default}`,
+                                name: `${firstName} ${lastName}`.trim(),
                                 headshot: playerEntry.headshot,
                                 team: playerEntry.teamAbbrevs,
                                 position: playerEntry.positionCode,
@@ -79,7 +88,7 @@ export default async function handler(req, res) {
                             case 'shots': playerStats[playerId].shotsOnGoal = value; break;
                             case 'hits': playerStats[playerId].hits = value; break;
                             case 'blockedShots': playerStats[playerId].blockedShots = value; break;
-                            case 'pim': playerStats[playerId].penaltyMinutes = String(value); break;
+                            case 'penaltyMinutes': playerStats[playerId].penaltyMinutes = String(value); break;
                         }
                     } catch (e) {
                          console.warn(`Could not process a player entry in category '${category}':`, playerEntry, e);
