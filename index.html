@@ -10,13 +10,33 @@
         body {
             font-family: 'Inter', sans-serif;
         }
-        .scoreboard-container::-webkit-scrollbar {
-            display: none; /* Hide scrollbar for Chrome, Safari and Opera */
+        
+        /* New styles for the scrolling animation */
+        @keyframes scrollLeft {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
         }
+
+        .scrolling-wrapper {
+            overflow: hidden;
+            width: 100%;
+        }
+
         .scoreboard-container {
-            -ms-overflow-style: none;  /* IE and Edge */
-            scrollbar-width: none;  /* Firefox */
+            display: flex;
+            width: fit-content; /* Let the container be as wide as its content */
+            animation: scrollLeft 60s linear infinite;
+            will-change: transform;
+            white-space: nowrap; /* Prevent items from wrapping */
         }
+        
+        .scrolling-wrapper:hover .scoreboard-container {
+            animation-play-state: paused;
+        }
+
+        /* Hide the original scrollbar */
+        .scoreboard-container::-webkit-scrollbar { display: none; }
+        .scoreboard-container { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-200">
@@ -39,9 +59,11 @@
         
         <!-- Live NHL Scoreboard Section -->
         <div class="border-b border-gray-700 py-2">
-             <div id="scoreboard-container" class="scoreboard-container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-4 overflow-x-auto">
-                <!-- Scores will be dynamically injected here -->
-                <div class="flex items-center justify-center w-full h-24 text-gray-400">Loading live scores...</div>
+             <div class="scrolling-wrapper max-w-7xl mx-auto">
+                <div id="scoreboard-container" class="flex space-x-4">
+                    <!-- Scores will be dynamically injected here -->
+                    <div class="flex items-center justify-center w-full h-24 text-gray-400">Loading live scores...</div>
+                </div>
             </div>
         </div>
 
@@ -106,18 +128,25 @@
         </main>
     </div>
 
+    <!-- New Game Stats Modal -->
+    <div id="game-stats-modal" class="hidden absolute z-20 w-80 bg-gray-900 border border-gray-700 rounded-lg shadow-xl p-4 transition-opacity duration-300">
+        <!-- Modal content will be injected here -->
+        <p>Loading game stats...</p>
+    </div>
+
     <script>
         const scoreboardContainer = document.getElementById('scoreboard-container');
+        const statsModal = document.getElementById('game-stats-modal');
+        let allScoresData = []; // Store score data globally
 
         async function fetchScores() {
             try {
                 const response = await fetch('/api/nhl-scores');
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                
                 const data = await response.json();
-
-                renderScores(data.scores);
+                allScoresData = data.scores; // Store for later use
+                renderScores(allScoresData);
 
             } catch (error) {
                 console.error("Failed to fetch scores:", error);
@@ -126,8 +155,7 @@
         }
 
         function renderScores(scores) {
-            // Clear previous scores
-            scoreboardContainer.innerHTML = '';
+            scoreboardContainer.innerHTML = ''; // Clear previous scores
 
             if (!scores || scores.length === 0) {
                 scoreboardContainer.innerHTML = `<div class="flex items-center justify-center w-full h-24 text-gray-400">No NHL games scheduled for today.</div>`;
@@ -135,45 +163,102 @@
             }
 
             scores.forEach(game => {
-                const gameElement = document.createElement('div');
-                gameElement.className = 'flex-shrink-0 bg-gray-800 rounded-lg p-3 w-64 h-24 flex flex-col justify-between';
-                
-                const gameStatus = game.isCompleted ? 'Final' : game.status;
-                
-                // Format the time for upcoming games
-                let timeDisplay = gameStatus;
-                if (!game.isCompleted && (game.status === 'Scheduled' || game.status.includes('TBA'))) {
-                    const gameTime = new Date(game.time);
-                    timeDisplay = gameTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-                }
-
-                gameElement.innerHTML = `
-                    <div class="flex justify-between items-center text-xs text-gray-400">
-                        <span>${timeDisplay}</span>
-                    </div>
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center space-x-2 w-full">
-                            <img src="${game.awayLogo}" alt="${game.awayTeam}" class="h-6 w-6" onerror="this.src='https://placehold.co/24x24/374151/FFFFFF?text=?'; this.onerror=null;">
-                            <span class="truncate text-sm font-medium">${game.awayTeam}</span>
-                        </div>
-                        <span class="text-lg font-bold">${game.awayScore !== null ? game.awayScore : ''}</span>
-                    </div>
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center space-x-2 w-full">
-                            <img src="${game.homeLogo}" alt="${game.homeTeam}" class="h-6 w-6" onerror="this.src='https://placehold.co/24x24/374151/FFFFFF?text=?'; this.onerror=null;">
-                            <span class="truncate text-sm font-medium">${game.homeTeam}</span>
-                        </div>
-                        <span class="text-lg font-bold">${game.homeScore !== null ? game.homeScore : ''}</span>
-                    </div>
-                `;
+                const gameElement = createGameElement(game);
                 scoreboardContainer.appendChild(gameElement);
+            });
+            
+            // Duplicate content for seamless scrolling
+            if (scores.length > 0) {
+                 setupSeamlessScrolling();
+            }
+        }
+
+        function createGameElement(game) {
+            const gameElement = document.createElement('div');
+            gameElement.className = 'flex-shrink-0 bg-gray-800 rounded-lg p-3 w-64 h-24 flex flex-col justify-between cursor-pointer';
+            gameElement.dataset.gameId = game.id; // Store game ID for stat fetching
+            
+            const gameStatus = game.isCompleted ? 'Final' : game.status;
+            
+            let timeDisplay = gameStatus;
+            if (!game.isCompleted && (game.status === 'Scheduled' || game.status.includes('TBA'))) {
+                const gameTime = new Date(game.time);
+                timeDisplay = gameTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+            }
+
+            gameElement.innerHTML = `
+                <div class="flex justify-between items-center text-xs text-gray-400">
+                    <span>${timeDisplay}</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-2 w-full">
+                        <img src="${game.awayLogo}" alt="${game.awayTeam}" class="h-6 w-6" onerror="this.src='https://placehold.co/24x24/374151/FFFFFF?text=?'; this.onerror=null;">
+                        <span class="truncate text-sm font-medium">${game.awayTeam}</span>
+                    </div>
+                    <span class="text-lg font-bold">${game.awayScore !== null ? game.awayScore : ''}</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-2 w-full">
+                        <img src="${game.homeLogo}" alt="${game.homeTeam}" class="h-6 w-6" onerror="this.src='https://placehold.co/24x24/374151/FFFFFF?text=?'; this.onerror=null;">
+                        <span class="truncate text-sm font-medium">${game.homeTeam}</span>
+                    </div>
+                    <span class="text-lg font-bold">${game.homeScore !== null ? game.homeScore : ''}</span>
+                </div>
+            `;
+            
+            // Add hover event listeners for the modal
+            gameElement.addEventListener('mouseenter', (event) => showStatsModal(event, game.id));
+            gameElement.addEventListener('mouseleave', hideStatsModal);
+            
+            return gameElement;
+        }
+        
+        function setupSeamlessScrolling() {
+            // Get all original items
+            const originalItems = Array.from(scoreboardContainer.children);
+            // Clone and append each item
+            originalItems.forEach(item => {
+                const clone = item.cloneNode(true);
+                // We need to re-add event listeners to clones
+                clone.addEventListener('mouseenter', (event) => showStatsModal(event, clone.dataset.gameId));
+                clone.addEventListener('mouseleave', hideStatsModal);
+                scoreboardContainer.appendChild(clone);
             });
         }
 
-        // Fetch scores on initial page load
-        fetchScores();
+        function showStatsModal(event, gameId) {
+            const gameData = allScoresData.find(g => g.id === gameId);
+            if (!gameData) return;
 
-        // Refresh scores every 15 seconds
+            // --- NOTE ---
+            // For a full implementation, you would fetch detailed stats here:
+            // const detailedStats = await fetch(`/api/nhl-game-stats?id=${gameId}`);
+            // For now, we'll just display the data we already have.
+            
+            const modalContent = `
+                <div class="flex justify-between items-center pb-2 border-b border-gray-700">
+                    <h3 class="font-bold">${gameData.awayTeam} @ ${gameData.homeTeam}</h3>
+                    <span class="text-xs px-2 py-1 bg-gray-700 rounded">${gameData.status}</span>
+                </div>
+                <div class="mt-3 text-sm space-y-2">
+                    <p><span class="font-semibold">Date:</span> ${new Date(gameData.time).toLocaleDateString()}</p>
+                    <p class="text-gray-400 italic">More detailed stats like shots on goal, power plays, and top performers would be loaded here from a dedicated game summary API endpoint.</p>
+                </div>
+            `;
+            statsModal.innerHTML = modalContent;
+
+            const targetRect = event.currentTarget.getBoundingClientRect();
+            statsModal.style.left = `${targetRect.left}px`;
+            statsModal.style.top = `${targetRect.bottom + window.scrollY + 10}px`; // Position below the game card
+            statsModal.classList.remove('hidden');
+        }
+
+        function hideStatsModal() {
+            statsModal.classList.add('hidden');
+        }
+
+        // Initial fetch and setup refresh interval
+        fetchScores();
         setInterval(fetchScores, 15000);
     </script>
 
