@@ -273,17 +273,20 @@
     function populateSeasonSelector() {
         const select = document.getElementById('season-select');
         const currentYear = new Date().getFullYear();
-        // If it's before October, the most recent *completed* season is last year's.
-        const mostRecentSeasonStartYear = new Date().getMonth() < 9 ? currentYear - 1 : currentYear;
+        // If it's before October (month 9), the current season hasn't really started for stat purposes.
+        // We consider the "current" season to be the one that just concluded.
+        const currentSeasonStartYear = new Date().getMonth() < 9 ? currentYear - 1 : currentYear;
 
-        for (let i = 0; i < 15; i++) { // Last 15 seasons
-            const startYear = mostRecentSeasonStartYear - i;
+        // Populate with the current season and the last 3 seasons (total of 4).
+        for (let i = 0; i < 4; i++) {
+            const startYear = currentSeasonStartYear - i;
             const seasonId = `${startYear}${startYear + 1}`;
             const option = document.createElement('option');
             option.value = seasonId;
             option.textContent = `${startYear}-${startYear + 1}`;
-            // Default select the most recent completed season
-            if (startYear === 2023) { // Hardcoding 23-24 as the default for stability
+            
+            // Default select the most recent season in the list (the first one).
+            if (i === 0) {
                  option.selected = true;
             }
             select.appendChild(option);
