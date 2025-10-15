@@ -48,8 +48,8 @@ export default async function handler(req, res) {
                 plusMinus: player.plusMinus,
                 penaltyMinutes: String(player.penaltyMinutes),
                 powerPlayGoals: player.ppGoals,
-                hits: 0,
-                blockedShots: 0,
+                hits: player.hits,
+                blockedShots: player.blockedShots,
             });
         });
 
