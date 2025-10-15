@@ -1,85 +1,92 @@
 // api/nhl-player-stats.js
 
 export default async function handler(req, res) {
-    // This endpoint fetches detailed player statistics from ESPN's leaders API.
-    // It's designed to collect a wide range of stats and consolidate them per player.
-    const url = "https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/leaders";
+    // This endpoint now fetches player statistics directly from the NHL's undocumented API.
+    // The structure is similar to ESPN's, providing leaders by category which we will consolidate.
+    const url = "https://api-web.nhle.com/v1/skater-stats-leaders/current";
 
     try {
-        console.log("Fetching player stats from ESPN...");
+        console.log("Fetching player stats from NHL API...");
         const response = await fetch(url);
         if (!response.ok) {
-            console.error(`ESPN API responded with status: ${response.status}`);
+            console.error(`NHL API responded with status: ${response.status}`);
             throw new Error(`Failed to fetch player stats. Status: ${response.status}`);
         }
         
         const data = await response.json();
-        console.log("Successfully fetched data, now processing...");
+        console.log("Successfully fetched data from NHL API, now processing...");
 
         const playerStats = {}; // Use a map for efficient consolidation { playerId: {stats} }
 
-        if (!data.leaders || !Array.isArray(data.leaders)) {
-            throw new Error("Leaders data is missing or not an array in the API response.");
-        }
+        // The NHL API response is an object with keys for each stat category (e.g., goals, assists).
+        // We will iterate over these categories to build our consolidated player objects.
+        const statCategories = [
+            'goals', 'assists', 'points', 'plusMinus', 'powerPlayGoals', 
+            'shorthandedGoals', 'shots', 'hits', 'blockedShots', 'pim'
+        ];
 
-        data.leaders.forEach(category => {
-            // **FINAL, MOST ROBUST FIX:** Wrap each category's processing in a try/catch.
-            // This prevents one bad category (e.g., malformed "HITS" data) from crashing the entire function.
+        // We process gamesPlayed separately as it's a core stat for every player.
+        const gamesPlayedData = data.gamesPlayed || [];
+        gamesPlayedData.forEach(playerEntry => {
             try {
-                if (!category || !category.shortDisplayName || !category.leaders || !Array.isArray(category.leaders)) {
-                    // Skip if the category itself is malformed.
-                    return; 
-                }
-                
-                const statName = category.shortDisplayName;
+                const playerId = playerEntry.id;
+                playerStats[playerId] = {
+                    id: playerId,
+                    name: `${playerEntry.firstName.default} ${playerEntry.lastName.default}`,
+                    headshot: playerEntry.headshot,
+                    team: playerEntry.teamAbbrevs,
+                    position: playerEntry.positionCode,
+                    gamesPlayed: playerEntry.value,
+                    goals: 0, assists: 0, points: 0, plusMinus: 0, penaltyMinutes: '0',
+                    shotsOnGoal: 0, hits: 0, powerPlayGoals: 0, shortHandedGoals: 0, blockedShots: 0,
+                };
+            } catch (e) {
+                console.warn("Could not process a gamesPlayed entry:", playerEntry, e);
+            }
+        });
 
-                category.leaders.forEach(playerEntry => {
-                    // This inner try/catch handles individual bad player records within a valid category.
+
+        // Now, iterate through all other stat categories and update the players.
+        for (const category of statCategories) {
+            if (data[category] && Array.isArray(data[category])) {
+                data[category].forEach(playerEntry => {
                     try {
-                        if (!playerEntry || !playerEntry.athlete || !playerEntry.athlete.id) {
-                            return; // Skip this entry if it's not a valid player object.
-                        }
-
-                        const player = playerEntry.athlete;
-                        const playerId = player.id;
-
+                        const playerId = playerEntry.id;
+                        // If a player appears in a stat category but not in gamesPlayed (rare), add them.
                         if (!playerStats[playerId]) {
-                            playerStats[playerId] = {
+                             playerStats[playerId] = {
                                 id: playerId,
-                                name: player.displayName || 'N/A',
-                                headshot: player.headshot?.href || 'https://placehold.co/100x100/333/FFFFFF?text=??',
-                                team: player.team?.abbreviation || 'N/A',
-                                position: player.position?.abbreviation || 'N/A',
-                                gamesPlayed: 0, goals: 0, assists: 0, points: 0, plusMinus: 0,
-                                penaltyMinutes: '0', shotsOnGoal: 0, hits: 0, powerPlayGoals: 0,
-                                shortHandedGoals: 0, blockedShots: 0,
+                                name: `${playerEntry.firstName.default} ${playerEntry.lastName.default}`,
+                                headshot: playerEntry.headshot,
+                                team: playerEntry.teamAbbrevs,
+                                position: playerEntry.positionCode,
+                                gamesPlayed: playerEntry.gamesPlayed || 0,
+                                goals: 0, assists: 0, points: 0, plusMinus: 0, penaltyMinutes: '0',
+                                shotsOnGoal: 0, hits: 0, powerPlayGoals: 0, shortHandedGoals: 0, blockedShots: 0,
                             };
                         }
 
                         const value = playerEntry.value;
-                        if (typeof value !== 'number') return;
 
-                        switch (statName) {
-                            case 'GP': playerStats[playerId].gamesPlayed = Math.round(value); break;
-                            case 'G': playerStats[playerId].goals = Math.round(value); break;
-                            case 'A': playerStats[playerId].assists = Math.round(value); break;
-                            case 'PTS': playerStats[playerId].points = Math.round(value); break;
-                            case '+/-': playerStats[playerId].plusMinus = Math.round(value); break;
-                            case 'PIM': playerStats[playerId].penaltyMinutes = playerEntry.displayValue; break;
-                            case 'SOG': playerStats[playerId].shotsOnGoal = Math.round(value); break;
-                            case 'HITS': playerStats[playerId].hits = Math.round(value); break;
-                            case 'PPG': playerStats[playerId].powerPlayGoals = Math.round(value); break;
-                            case 'SHG': playerStats[playerId].shortHandedGoals = Math.round(value); break;
-                            case 'BS': playerStats[playerId].blockedShots = Math.round(value); break;
+                        // Update the specific stat for the player
+                        switch (category) {
+                            case 'goals': playerStats[playerId].goals = value; break;
+                            case 'assists': playerStats[playerId].assists = value; break;
+                            case 'points': playerStats[playerId].points = value; break;
+                            case 'plusMinus': playerStats[playerId].plusMinus = value; break;
+                            case 'powerPlayGoals': playerStats[playerId].powerPlayGoals = value; break;
+                            case 'shorthandedGoals': playerStats[playerId].shortHandedGoals = value; break;
+                            case 'shots': playerStats[playerId].shotsOnGoal = value; break;
+                            case 'hits': playerStats[playerId].hits = value; break;
+                            case 'blockedShots': playerStats[playerId].blockedShots = value; break;
+                            case 'pim': playerStats[playerId].penaltyMinutes = String(value); break;
                         }
                     } catch (e) {
-                        console.warn("Could not process an individual player entry:", playerEntry, e);
+                         console.warn(`Could not process a player entry in category '${category}':`, playerEntry, e);
                     }
                 });
-            } catch (e) {
-                console.warn("Could not process an entire stat category:", category, e);
             }
-        });
+        }
         
         const consolidatedStats = Object.values(playerStats);
         
