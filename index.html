@@ -58,11 +58,13 @@
         </header>
         
         <!-- Live NHL Scoreboard Section -->
-        <div class="border-b border-gray-700 py-2">
-             <div class="scrolling-wrapper max-w-7xl mx-auto">
-                <div id="scoreboard-container" class="flex space-x-4">
-                    <!-- Scores will be dynamically injected here -->
-                    <div class="flex items-center justify-center w-full h-24 text-gray-400">Loading live scores...</div>
+        <div class="py-4">
+            <div class="max-w-7xl mx-auto border border-gray-700 rounded-lg overflow-hidden">
+                <div class="scrolling-wrapper p-2">
+                    <div id="scoreboard-container" class="flex space-x-4">
+                        <!-- Scores will be dynamically injected here -->
+                        <div class="flex items-center justify-center w-full h-24 text-gray-400">Loading live scores...</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -129,7 +131,7 @@
     </div>
 
     <!-- New Game Stats Modal -->
-    <div id="game-stats-modal" class="hidden absolute z-20 w-80 bg-gray-900 border border-gray-700 rounded-lg shadow-xl p-4 transition-opacity duration-300">
+    <div id="game-stats-modal" class="hidden absolute z-20 w-[32rem] bg-gray-900 border border-gray-700 rounded-lg shadow-xl p-4 transition-opacity duration-300">
         <!-- Modal content will be injected here -->
         <p>Loading game stats...</p>
     </div>
@@ -245,6 +247,44 @@
                 if (!response.ok) throw new Error('Failed to load stats');
                 const stats = await response.json();
 
+                const teamStats = stats.teamStats;
+                const playerStats = stats.individualPlayerStats;
+
+                const renderPlayerTable = (players, teamName) => {
+                    if (!players || players.length === 0) {
+                        return `<p class="text-xs text-gray-500 mt-2 px-1">No significant player stats for ${teamName}.</p>`;
+                    }
+                    return `
+                        <h5 class="font-semibold text-sm mt-3 mb-1 px-1">${teamName}</h5>
+                        <table class="w-full text-xs text-left">
+                            <thead class="text-gray-400">
+                                <tr>
+                                    <th class="font-medium p-1">Player</th>
+                                    <th class="font-medium p-1 text-center">G</th>
+                                    <th class="font-medium p-1 text-center">A</th>
+                                    <th class="font-medium p-1 text-center">SOG</th>
+                                    <th class="font-medium p-1 text-center">HITS</th>
+                                    <th class="font-medium p-1 text-center">BS</th>
+                                    <th class="font-medium p-1 text-center">PIM</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-800">
+                                ${players.map(p => `
+                                    <tr>
+                                        <td class="p-1 font-medium">${p.name} <span class="text-gray-500">${p.position}</span></td>
+                                        <td class="p-1 text-center">${p.G}</td>
+                                        <td class="p-1 text-center">${p.A}</td>
+                                        <td class="p-1 text-center">${p.SOG}</td>
+                                        <td class="p-1 text-center">${p.HITS}</td>
+                                        <td class="p-1 text-center">${p.BS}</td>
+                                        <td class="p-1 text-center">${p.PIM}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    `;
+                };
+
                 // Build the detailed stats HTML
                 const modalContent = `
                     <div class="flex justify-between items-center pb-2 border-b border-gray-700 mb-3">
@@ -252,27 +292,38 @@
                         <span class="text-xs px-2 py-1 bg-gray-700 rounded">${gameData.status}</span>
                     </div>
                     
-                    <div class="grid grid-cols-2 gap-4 text-sm mb-3">
-                        <div class="text-center">
-                            <p class="text-gray-400 text-xs">SHOTS ON GOAL</p>
-                            <p class="font-bold text-lg">${stats.shotsOnGoal.away} - ${stats.shotsOnGoal.home}</p>
-                        </div>
-                        <div class="text-center">
-                            <p class="text-gray-400 text-xs">POWER PLAYS</p>
-                            <p class="font-bold text-lg">${stats.powerPlays.away} - ${stats.powerPlays.home}</p>
+                    <div>
+                        <h4 class="font-semibold text-xs text-gray-400 uppercase mb-2">Team Stats</h4>
+                         <div class="grid grid-cols-3 gap-y-3 gap-x-4 text-sm text-center">
+                            <div>
+                                <p class="text-gray-400 text-xs">SHOTS</p>
+                                <p class="font-bold text-base">${teamStats.shotsOnGoal.away} - ${teamStats.shotsOnGoal.home}</p>
+                            </div>
+                            <div>
+                                <p class="text-gray-400 text-xs">HITS</p>
+                                <p class="font-bold text-base">${teamStats.hits.away} - ${teamStats.hits.home}</p>
+                            </div>
+                            <div>
+                                <p class="text-gray-400 text-xs">BLOCKS</p>
+                                <p class="font-bold text-base">${teamStats.blockedShots.away} - ${teamStats.blockedShots.home}</p>
+                            </div>
+                            <div>
+                                <p class="text-gray-400 text-xs">PIM</p>
+                                <p class="font-bold text-base">${teamStats.penaltyMinutes.away} - ${teamStats.penaltyMinutes.home}</p>
+                            </div>
+                            <div class="col-span-2">
+                                <p class="text-gray-400 text-xs">POWER PLAYS</p>
+                                <p class="font-bold text-base">${teamStats.powerPlays.away} - ${teamStats.powerPlays.home}</p>
+                            </div>
                         </div>
                     </div>
-                    
-                    <div>
-                        <h4 class="font-semibold text-xs text-gray-400 mb-2">SCORING SUMMARY</h4>
-                        <ul class="text-xs space-y-2">
-                            ${stats.scoringPlays && stats.scoringPlays.length > 0 ? stats.scoringPlays.map(play => `
-                                <li class="flex justify-between items-center">
-                                    <span class="truncate pr-2" title="${play.text}">${play.text}</span>
-                                    <span class="flex-shrink-0 font-mono text-gray-500">${play.period} ${play.time}</span>
-                                </li>
-                            `).join('') : '<li class="text-gray-500">No scoring plays yet.</li>'}
-                        </ul>
+
+                    <div class="border-t border-gray-700 mt-4 pt-3">
+                         <h4 class="font-semibold text-xs text-gray-400 uppercase mb-1">Individual Stats</h4>
+                         <div class="max-h-52 overflow-y-auto">
+                             ${renderPlayerTable(playerStats.away, gameData.awayTeam)}
+                             ${renderPlayerTable(playerStats.home, gameData.homeTeam)}
+                         </div>
                     </div>
                 `;
                 statsModal.innerHTML = modalContent;
@@ -300,4 +351,6 @@
 
 </body>
 </html>
+
+
 

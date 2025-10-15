@@ -16,63 +16,98 @@ export default async function handler(req, res) {
         }
 
         const data = await response.json();
-
-        // --- Data Parsing for Banger Stats ---
-        // The following section carefully extracts the specific stats we want from the complex ESPN response.
         
+        // --- Team Stats Parsing ---
         const boxscore = data.boxscore;
-        const awayTeamStats = boxscore.teams[1].statistics;
-        const homeTeamStats = boxscore.teams[0].statistics;
+        const awayTeamBoxscore = boxscore.teams[1];
+        const homeTeamBoxscore = boxscore.teams[0];
 
-        // Helper function to find a specific stat's value
-        const getStat = (statsArray, statName) => {
+        // Helper function to find a specific stat's value for a team
+        const getTeamStat = (statsArray, statName) => {
             const stat = statsArray.find(s => s.name === statName);
-            // Use displayValue for strings (like PP) and parse integer for numbers
             return stat ? (stat.displayValue.includes('/') ? stat.displayValue : parseInt(stat.displayValue)) : 0;
         };
         
-        // Extract all the relevant stats
-        const shotsOnGoal = {
-            away: getStat(awayTeamStats, 'shotsOnGoal'),
-            home: getStat(homeTeamStats, 'shotsOnGoal'),
-        };
-        const hits = {
-            away: getStat(awayTeamStats, 'hits'),
-            home: getStat(homeTeamStats, 'hits'),
-        };
-        const blockedShots = {
-            away: getStat(awayTeamStats, 'blockedShots'),
-            home: getStat(homeTeamStats, 'blockedShots'),
-        };
-        const penaltyMinutes = {
-            away: getStat(awayTeamStats, 'penaltyMinutes'),
-            home: getStat(homeTeamStats, 'penaltyMinutes'),
-        };
-        const powerPlays = {
-            away: getStat(awayTeamStats, 'powerPlay') || '0/0',
-            home: getStat(homeTeamStats, 'powerPlay') || '0/0',
+        const teamStats = {
+            shotsOnGoal: {
+                away: getTeamStat(awayTeamBoxscore.statistics, 'shotsOnGoal'),
+                home: getTeamStat(homeTeamBoxscore.statistics, 'shotsOnGoal'),
+            },
+            hits: {
+                away: getTeamStat(awayTeamBoxscore.statistics, 'hits'),
+                home: getTeamStat(homeTeamBoxscore.statistics, 'hits'),
+            },
+            blockedShots: {
+                away: getTeamStat(awayTeamBoxscore.statistics, 'blockedShots'),
+                home: getTeamStat(homeTeamBoxscore.statistics, 'blockedShots'),
+            },
+            penaltyMinutes: {
+                away: getTeamStat(awayTeamBoxscore.statistics, 'penaltyMinutes'),
+                home: getTeamStat(homeTeamBoxscore.statistics, 'penaltyMinutes'),
+            },
+            powerPlays: {
+                away: getTeamStat(awayTeamBoxscore.statistics, 'powerPlay') || '0/0',
+                home: getTeamStat(homeTeamBoxscore.statistics, 'powerPlay') || '0/0',
+            }
         };
 
-        // Get the list of scoring plays
-        const scoringPlays = data.scoringPlays?.map(play => {
-            return {
-                period: play.period.displayValue,
-                time: play.clock.displayValue,
-                text: play.text, // e.g., "Connor McDavid scores goal"
-            };
-        }).slice(0, 5); // Limit to the first 5 scoring plays for a clean look
+        // --- Individual Player Stats Parsing ---
+        const parsePlayerStats = (playerData) => {
+            const skaterStats = playerData.statistics.find(s => s.name === 'skaters');
+            if (!skaterStats || !skaterStats.athletes) return [];
 
-        // Combine all the parsed data into a single, clean object
+            const statLabels = skaterStats.labels; // e.g., ['G', 'A', 'S', '+/-', 'PIM', 'HITS', 'BS']
+            
+            const gIndex = statLabels.indexOf('G');
+            const aIndex = statLabels.indexOf('A');
+            const sogIndex = statLabels.indexOf('S');
+            const hitsIndex = statLabels.indexOf('HITS');
+            const bsIndex = statLabels.indexOf('BS');
+            const pimIndex = statLabels.indexOf('PIM');
+
+            return skaterStats.athletes.map(athlete => {
+                if (athlete.stats.length === 0) return null;
+                
+                const stats = {
+                    name: athlete.athlete.displayName,
+                    position: athlete.athlete.position.abbreviation,
+                    G: gIndex !== -1 ? athlete.stats[gIndex] : '0',
+                    A: aIndex !== -1 ? athlete.stats[aIndex] : '0',
+                    SOG: sogIndex !== -1 ? athlete.stats[sogIndex] : '0',
+                    HITS: hitsIndex !== -1 ? athlete.stats[hitsIndex] : '0',
+                    BS: bsIndex !== -1 ? athlete.stats[bsIndex] : '0',
+                    PIM: pimIndex !== -1 ? athlete.stats[pimIndex] : '0',
+                };
+
+                // Only include players who had at least one recorded stat
+                const hasStats = (stats.G !== '0' || stats.A !== '0' || stats.SOG !== '0' || stats.HITS !== '0' || stats.BS !== '0' || stats.PIM !== '0');
+                return hasStats ? stats : null;
+
+            }).filter(p => p !== null);
+        };
+
+        const awayPlayerData = boxscore.players.find(p => p.team.id === awayTeamBoxscore.team.id);
+        const homePlayerData = boxscore.players.find(p => p.team.id === homeTeamBoxscore.team.id);
+
+        const individualPlayerStats = {
+            away: awayPlayerData ? parsePlayerStats(awayPlayerData) : [],
+            home: homePlayerData ? parsePlayerStats(homePlayerData) : [],
+        };
+
+        // --- Scoring Plays Parsing ---
+        const scoringPlays = data.scoringPlays?.map(play => ({
+            period: play.period.displayValue,
+            time: play.clock.displayValue,
+            text: play.text,
+        })).slice(0, 5);
+
+        // --- Final Combined Object ---
         const gameStats = {
-            shotsOnGoal,
-            hits,
-            blockedShots,
-            penaltyMinutes,
-            powerPlays,
+            teamStats,
+            individualPlayerStats,
             scoringPlays,
         };
         
-        // Send the formatted stats back as a successful response
         res.status(200).json(gameStats);
 
     } catch (error) {
