@@ -2,11 +2,11 @@
 
 export default async function handler(req, res) {
     // This endpoint now fetches player statistics directly from the NHL's undocumented API.
-    // The structure is similar to ESPN's, providing leaders by category which we will consolidate.
-    const url = "https://api-web.nhle.com/v1/skater-stats-leaders/current";
+    // **FIX**: Changed from "/current" to a specific season to ensure data is available during the off-season.
+    const url = "https://api-web.nhle.com/v1/skater-stats-leaders/20232024";
 
     try {
-        console.log("Fetching player stats from NHL API...");
+        console.log(`Fetching player stats from NHL API URL: ${url}`);
         const response = await fetch(url);
         if (!response.ok) {
             console.error(`NHL API responded with status: ${response.status}`);
