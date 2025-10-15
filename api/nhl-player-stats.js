@@ -16,8 +16,6 @@ export default async function handler(req, res) {
         const data = await response.json();
         console.log("Successfully fetched data, now processing...");
 
-        // The ESPN leaders API is structured by stat categories. We need to iterate 
-        // through these categories and consolidate the stats for each player into a single object.
         const playerStats = {}; // Use a map for efficient consolidation { playerId: {stats} }
 
         if (!data.leaders) {
@@ -25,15 +23,13 @@ export default async function handler(req, res) {
         }
 
         data.leaders.forEach(category => {
-            const statName = category.shortDisplayName; // e.g., "G", "A", "+/-"
+            const statName = category.shortDisplayName;
             
             if (!category.leaders || !Array.isArray(category.leaders)) {
                 return; // Skip this category if it has no leaders array.
             }
 
             category.leaders.forEach(playerEntry => {
-                // **FINAL FIX:** Wrap each player's processing in a try/catch block.
-                // This prevents one bad player record from crashing the entire function.
                 try {
                     if (!playerEntry.athlete || !playerEntry.athlete.id) {
                         return; // Skip this entry if it's not a valid player.
@@ -42,7 +38,6 @@ export default async function handler(req, res) {
                     const player = playerEntry.athlete;
                     const playerId = player.id;
 
-                    // Initialize player object if it's the first time we see them
                     if (!playerStats[playerId]) {
                         playerStats[playerId] = {
                             id: playerId,
@@ -50,7 +45,6 @@ export default async function handler(req, res) {
                             headshot: player.headshot?.href || 'https://placehold.co/100x100/333/FFFFFF?text=??',
                             team: player.team?.abbreviation || 'N/A',
                             position: player.position?.abbreviation || 'N/A',
-                            // Initialize all expected stats to 0 or 'N/A'
                             gamesPlayed: 0,
                             goals: 0,
                             assists: 0,
@@ -65,8 +59,10 @@ export default async function handler(req, res) {
                         };
                     }
 
-                    // Update the specific stat for the player
                     const value = playerEntry.value;
+
+                    // **IMPROVED FIX:** Add a check to ensure value is a number before rounding.
+                    if (typeof value !== 'number') return;
 
                     switch (statName) {
                         case 'GP': playerStats[playerId].gamesPlayed = Math.round(value); break;
@@ -87,10 +83,8 @@ export default async function handler(req, res) {
             });
         });
         
-        // Convert the map of players back to an array
         const consolidatedStats = Object.values(playerStats);
         
-        // Ensure that any player who has points has their games played value, as it can be missing
         consolidatedStats.forEach(p => {
             if (p.points > 0 && p.gamesPlayed === 0) {
                  const gpLeader = data.leaders.find(c => c.shortDisplayName === 'GP')?.leaders.find(l => l.athlete && l.athlete.id === p.id);
@@ -100,12 +94,11 @@ export default async function handler(req, res) {
             }
         });
 
-
         console.log(`Processing complete. Found ${consolidatedStats.length} players.`);
         res.status(200).json(consolidatedStats);
 
     } catch (error) {
-        console.error("Error in nhl-player-stats function:", error);
+        console.error("Critical error in nhl-player-stats function:", error.name, error.message, error.stack);
         res.status(500).json({ error: "Could not fetch player statistics.", details: error.message });
     }
 }
