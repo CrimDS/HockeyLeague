@@ -34,10 +34,10 @@ export default async function handler(req, res) {
             plusMinus: player.plusMinus,
             penaltyMinutes: String(player.penaltyMinutes),
             shotsOnGoal: player.shots,
-            hits: player.hits,
+            hits: player.hits ?? 0, // Fallback to 0 if undefined
             powerPlayGoals: player.ppGoals,
             shortHandedGoals: player.shGoals,
-            blockedShots: player.blocks,
+            blockedShots: player.blocks ?? 0, // Fallback to 0 if undefined
         }));
 
         console.log(`Processing complete. Found ${mappedStats.length} players.`);
