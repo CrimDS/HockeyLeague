@@ -22,16 +22,16 @@ export default async function handler(req, res) {
         // We will iterate over these categories to build our consolidated player objects.
         const statCategories = [
             'goals', 'assists', 'points', 'plusMinus', 'powerPlayGoals', 
-            'shorthandedGoals', 'shots', 'hits', 'blockedShots', 'penaltyMinutes' // Corrected 'pim' to 'penaltyMinutes'
+            'shorthandedGoals', 'shots', 'hits', 'blockedShots', 'penaltyMinutes'
         ];
 
-        // We process gamesPlayed separately as it's a core stat for every player.
+        // We process gamesPlayed separately as it's the most reliable source for a player's core info.
         const gamesPlayedData = data.gamesPlayed || [];
         gamesPlayedData.forEach(playerEntry => {
             try {
                 if (!playerEntry || !playerEntry.id) return;
                 const playerId = playerEntry.id;
-                // Add safety checks for name properties
+                // Add safety checks for name and team properties
                 const firstName = playerEntry.firstName?.default || '';
                 const lastName = playerEntry.lastName?.default || '';
 
@@ -39,8 +39,8 @@ export default async function handler(req, res) {
                     id: playerId,
                     name: `${firstName} ${lastName}`.trim(),
                     headshot: playerEntry.headshot,
-                    team: playerEntry.teamAbbrevs,
-                    position: playerEntry.positionCode,
+                    team: playerEntry.teamAbbrevs || 'N/A', // Added fallback
+                    position: playerEntry.positionCode || 'N/A', // Added fallback
                     gamesPlayed: playerEntry.value,
                     goals: 0, assists: 0, points: 0, plusMinus: 0, penaltyMinutes: '0',
                     shotsOnGoal: 0, hits: 0, powerPlayGoals: 0, shortHandedGoals: 0, blockedShots: 0,
@@ -51,7 +51,7 @@ export default async function handler(req, res) {
         });
 
 
-        // Now, iterate through all other stat categories and update the players.
+        // Now, iterate through all other stat categories and UPDATE the players.
         for (const category of statCategories) {
             if (data[category] && Array.isArray(data[category])) {
                 data[category].forEach(playerEntry => {
@@ -59,36 +59,24 @@ export default async function handler(req, res) {
                         if (!playerEntry || !playerEntry.id) return;
                         const playerId = playerEntry.id;
 
-                        // If a player appears in a stat category but not in gamesPlayed (rare), add them.
-                        if (!playerStats[playerId]) {
-                             const firstName = playerEntry.firstName?.default || '';
-                             const lastName = playerEntry.lastName?.default || '';
-                             playerStats[playerId] = {
-                                id: playerId,
-                                name: `${firstName} ${lastName}`.trim(),
-                                headshot: playerEntry.headshot,
-                                team: playerEntry.teamAbbrevs,
-                                position: playerEntry.positionCode,
-                                gamesPlayed: playerEntry.gamesPlayed || 0,
-                                goals: 0, assists: 0, points: 0, plusMinus: 0, penaltyMinutes: '0',
-                                shotsOnGoal: 0, hits: 0, powerPlayGoals: 0, shortHandedGoals: 0, blockedShots: 0,
-                            };
-                        }
+                        // **FIX**: Only update players that were already created from the gamesPlayed list.
+                        // This prevents creating partial records for players and ensures GP/Team info is accurate.
+                        if (playerStats[playerId]) {
+                            const value = playerEntry.value;
 
-                        const value = playerEntry.value;
-
-                        // Update the specific stat for the player
-                        switch (category) {
-                            case 'goals': playerStats[playerId].goals = value; break;
-                            case 'assists': playerStats[playerId].assists = value; break;
-                            case 'points': playerStats[playerId].points = value; break;
-                            case 'plusMinus': playerStats[playerId].plusMinus = value; break;
-                            case 'powerPlayGoals': playerStats[playerId].powerPlayGoals = value; break;
-                            case 'shorthandedGoals': playerStats[playerId].shortHandedGoals = value; break;
-                            case 'shots': playerStats[playerId].shotsOnGoal = value; break;
-                            case 'hits': playerStats[playerId].hits = value; break;
-                            case 'blockedShots': playerStats[playerId].blockedShots = value; break;
-                            case 'penaltyMinutes': playerStats[playerId].penaltyMinutes = String(value); break;
+                            // Update the specific stat for the player
+                            switch (category) {
+                                case 'goals': playerStats[playerId].goals = value; break;
+                                case 'assists': playerStats[playerId].assists = value; break;
+                                case 'points': playerStats[playerId].points = value; break;
+                                case 'plusMinus': playerStats[playerId].plusMinus = value; break;
+                                case 'powerPlayGoals': playerStats[playerId].powerPlayGoals = value; break;
+                                case 'shorthandedGoals': playerStats[playerId].shortHandedGoals = value; break;
+                                case 'shots': playerStats[playerId].shotsOnGoal = value; break;
+                                case 'hits': playerStats[playerId].hits = value; break;
+                                case 'blockedShots': playerStats[playerId].blockedShots = value; break;
+                                case 'penaltyMinutes': playerStats[playerId].penaltyMinutes = String(value); break;
+                            }
                         }
                     } catch (e) {
                          console.warn(`Could not process a player entry in category '${category}':`, playerEntry, e);
