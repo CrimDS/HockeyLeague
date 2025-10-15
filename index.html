@@ -11,7 +11,7 @@
             font-family: 'Inter', sans-serif;
         }
         
-        /* New styles for the scrolling animation */
+        /* Styles for the scrolling animations */
         @keyframes scrollLeft {
             0% { transform: translateX(0); }
             100% { transform: translateX(-50%); }
@@ -24,19 +24,29 @@
 
         #scoreboard-container {
             display: flex;
-            width: fit-content; /* Let the container be as wide as its content */
+            width: fit-content;
             animation: scrollLeft 60s linear infinite;
             will-change: transform;
-            white-space: nowrap; /* Prevent items from wrapping */
+            white-space: nowrap;
         }
         
-        .scrolling-wrapper:hover #scoreboard-container {
+        #news-ticker-container {
+            display: flex;
+            width: fit-content;
+            animation: scrollLeft 120s linear infinite; /* Slower scroll for news */
+            will-change: transform;
+            white-space: nowrap;
+        }
+
+        .scrolling-wrapper:hover #scoreboard-container,
+        .scrolling-wrapper:hover #news-ticker-container {
             animation-play-state: paused;
         }
 
         /* Hide the original scrollbar */
-        #scoreboard-container::-webkit-scrollbar { display: none; }
-        #scoreboard-container { -ms-overflow-style: none; scrollbar-width: none; }
+        #scoreboard-container::-webkit-scrollbar,
+        #news-ticker-container::-webkit-scrollbar { display: none; }
+        #scoreboard-container, #news-ticker-container { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-200">
@@ -58,16 +68,27 @@
         </header>
         
         <!-- Live NHL Scoreboard Section -->
-        <div class="py-4">
+        <div class="pt-4 px-4 sm:px-0">
             <div class="max-w-7xl mx-auto border border-gray-700 rounded-lg overflow-hidden">
                 <div class="scrolling-wrapper p-2">
                     <div id="scoreboard-container" class="flex space-x-4">
-                        <!-- Scores will be dynamically injected here -->
                         <div class="flex items-center justify-center w-full h-24 text-gray-400">Loading live scores...</div>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- NHL News Ticker Section -->
+        <div class="pb-4 px-4 sm:px-0">
+            <div class="max-w-7xl mx-auto">
+                 <div class="scrolling-wrapper bg-gray-800 rounded-lg p-2 mt-2">
+                    <div id="news-ticker-container" class="flex items-center h-6">
+                        <div class="text-gray-400 px-4">Loading latest news...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
 
         <!-- Main Content -->
         <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -130,27 +151,26 @@
         </main>
     </div>
 
-    <!-- New Game Stats Modal -->
+    <!-- Game Stats Modal -->
     <div id="game-stats-modal" class="hidden absolute z-20 w-[32rem] bg-gray-900 border border-gray-700 rounded-lg shadow-xl p-4 transition-opacity duration-300">
-        <!-- Modal content will be injected here -->
         <p>Loading game stats...</p>
     </div>
 
     <script>
         const scoreboardContainer = document.getElementById('scoreboard-container');
+        const newsTickerContainer = document.getElementById('news-ticker-container');
         const statsModal = document.getElementById('game-stats-modal');
-        let allScoresData = []; // Store score data globally
-        let modalTimeout; // To handle hover delays
+        let allScoresData = [];
+        let modalTimeout;
 
+        // --- SCORES LOGIC ---
         async function fetchScores() {
             try {
                 const response = await fetch('/api/nhl-scores');
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                
                 const data = await response.json();
-                allScoresData = data.scores; // Store for later use
+                allScoresData = data.scores;
                 renderScores(allScoresData);
-
             } catch (error) {
                 console.error("Failed to fetch scores:", error);
                 scoreboardContainer.innerHTML = `<div class="flex items-center justify-center w-full h-24 text-red-400">Failed to load live scores.</div>`;
@@ -158,192 +178,131 @@
         }
 
         function renderScores(scores) {
-            scoreboardContainer.innerHTML = ''; // Clear previous scores
-
+            scoreboardContainer.innerHTML = '';
             if (!scores || scores.length === 0) {
                 scoreboardContainer.innerHTML = `<div class="flex items-center justify-center w-full h-24 text-gray-400">No NHL games scheduled for today.</div>`;
                 return;
             }
-
             scores.forEach(game => {
                 const gameElement = createGameElement(game);
                 scoreboardContainer.appendChild(gameElement);
             });
-            
-            // Duplicate content for seamless scrolling
             if (scores.length > 0) {
-                 setupSeamlessScrolling();
+                 setupSeamlessScrolling(scoreboardContainer, createGameElement);
             }
         }
 
         function createGameElement(game) {
             const gameElement = document.createElement('div');
             gameElement.className = 'flex-shrink-0 bg-gray-800 rounded-lg p-3 w-64 h-24 flex flex-col justify-between cursor-pointer';
-            gameElement.dataset.gameId = game.id; // Store game ID for stat fetching
-            
+            gameElement.dataset.gameId = game.id;
             const gameStatus = game.isCompleted ? 'Final' : game.status;
-            
             let timeDisplay = gameStatus;
             if (!game.isCompleted && (game.status === 'Scheduled' || game.status.includes('TBA'))) {
                 const gameTime = new Date(game.time);
                 timeDisplay = gameTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
             }
-
             gameElement.innerHTML = `
-                <div class="flex justify-between items-center text-xs text-gray-400">
-                    <span>${timeDisplay}</span>
-                </div>
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center space-x-2 w-full">
-                        <img src="${game.awayLogo}" alt="${game.awayTeam}" class="h-6 w-6" onerror="this.src='https://placehold.co/24x24/374151/FFFFFF?text=?'; this.onerror=null;">
-                        <span class="truncate text-sm font-medium">${game.awayTeam}</span>
-                    </div>
-                    <span class="text-lg font-bold">${game.awayScore !== null ? game.awayScore : ''}</span>
-                </div>
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center space-x-2 w-full">
-                        <img src="${game.homeLogo}" alt="${game.homeTeam}" class="h-6 w-6" onerror="this.src='https://placehold.co/24x24/374151/FFFFFF?text=?'; this.onerror=null;">
-                        <span class="truncate text-sm font-medium">${game.homeTeam}</span>
-                    </div>
-                    <span class="text-lg font-bold">${game.homeScore !== null ? game.homeScore : ''}</span>
-                </div>
+                <div class="flex justify-between items-center text-xs text-gray-400"><span>${timeDisplay}</span></div>
+                <div class="flex items-center justify-between"><div class="flex items-center space-x-2 w-full"><img src="${game.awayLogo}" alt="${game.awayTeam}" class="h-6 w-6" onerror="this.src='https://placehold.co/24x24/374151/FFFFFF?text=?'; this.onerror=null;"><span class="truncate text-sm font-medium">${game.awayTeam}</span></div><span class="text-lg font-bold">${game.awayScore !== null ? game.awayScore : ''}</span></div>
+                <div class="flex items-center justify-between"><div class="flex items-center space-x-2 w-full"><img src="${game.homeLogo}" alt="${game.homeTeam}" class="h-6 w-6" onerror="this.src='https://placehold.co/24x24/374151/FFFFFF?text=?'; this.onerror=null;"><span class="truncate text-sm font-medium">${game.homeTeam}</span></div><span class="text-lg font-bold">${game.homeScore !== null ? game.homeScore : ''}</span></div>
             `;
-            
-            // Add hover event listeners for the modal
             gameElement.addEventListener('mouseenter', (event) => showStatsModal(event, game.id));
             gameElement.addEventListener('mouseleave', hideStatsModal);
-            
             return gameElement;
         }
+
+        // --- NEWS LOGIC ---
+        async function fetchNews() {
+            try {
+                const response = await fetch('/api/nhl-news');
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const data = await response.json();
+                renderNews(data.articles);
+            } catch (error) {
+                console.error("Failed to fetch news:", error);
+                newsTickerContainer.innerHTML = `<div class="text-red-400 px-4">Failed to load news.</div>`;
+            }
+        }
+
+        function renderNews(articles) {
+            newsTickerContainer.innerHTML = '';
+            if (!articles || articles.length === 0) {
+                newsTickerContainer.innerHTML = `<div class="text-gray-400 px-4">No recent news found.</div>`;
+                return;
+            }
+            articles.forEach(article => {
+                const articleElement = createNewsElement(article);
+                newsTickerContainer.appendChild(articleElement);
+            });
+            if (articles.length > 0) {
+                setupSeamlessScrolling(newsTickerContainer, createNewsElement, articles);
+            }
+        }
         
-        function setupSeamlessScrolling() {
-            // Get all original items
-            const originalItems = Array.from(scoreboardContainer.children);
-            // Clone and append each item
-            originalItems.forEach(item => {
+        function createNewsElement(article) {
+             const articleElement = document.createElement('a');
+            articleElement.href = article.link;
+            articleElement.target = '_blank';
+            articleElement.rel = 'noopener noreferrer';
+            articleElement.className = 'text-sm text-gray-300 hover:text-white hover:underline whitespace-nowrap mx-6';
+            articleElement.textContent = article.title;
+            return articleElement;
+        }
+
+        // --- SHARED & MODAL LOGIC ---
+        function setupSeamlessScrolling(container, elementCreator, data) {
+            const originalItems = Array.from(container.children);
+            originalItems.forEach((item, index) => {
                 const clone = item.cloneNode(true);
-                // We need to re-add event listeners to clones
-                clone.addEventListener('mouseenter', (event) => showStatsModal(event, clone.dataset.gameId));
-                clone.addEventListener('mouseleave', hideStatsModal);
-                scoreboardContainer.appendChild(clone);
+                if (container.id === 'scoreboard-container') {
+                    const gameId = item.dataset.gameId;
+                    clone.addEventListener('mouseenter', (event) => showStatsModal(event, gameId));
+                    clone.addEventListener('mouseleave', hideStatsModal);
+                }
+                container.appendChild(clone);
             });
         }
 
         async function showStatsModal(event, gameId) {
-            clearTimeout(modalTimeout); // Stop the modal from hiding if we move to a new item
+            clearTimeout(modalTimeout);
             const gameData = allScoresData.find(g => g.id === gameId);
             if (!gameData) return;
 
             statsModal.innerHTML = `<p class="text-center text-gray-400">Loading game stats...</p>`;
-            
             const targetRect = event.currentTarget.getBoundingClientRect();
             statsModal.style.left = `${targetRect.left}px`;
             statsModal.style.top = `${targetRect.bottom + window.scrollY + 10}px`;
             statsModal.classList.remove('hidden');
 
             try {
-                // Fetch detailed stats from our new endpoint
                 const response = await fetch(`/api/nhl-game-stats?id=${gameId}`);
                 if (!response.ok) throw new Error('Failed to load stats');
                 const stats = await response.json();
-
-                const teamStats = stats.teamStats;
-                const playerStats = stats.individualPlayerStats;
+                const { teamStats, individualPlayerStats: playerStats } = stats;
 
                 const renderPlayerTable = (players, teamName) => {
-                    if (!players || players.length === 0) {
-                        return `<p class="text-xs text-gray-500 mt-2 px-1">No significant player stats for ${teamName}.</p>`;
-                    }
+                    if (!players || players.length === 0) return `<p class="text-xs text-gray-500 mt-2 px-1">No significant player stats for ${teamName}.</p>`;
                     return `
                         <h5 class="font-semibold text-sm mt-3 mb-1 px-1">${teamName}</h5>
-                        <table class="w-full text-xs text-left">
-                            <thead class="text-gray-400">
-                                <tr>
-                                    <th class="font-medium p-1">Player</th>
-                                    <th class="font-medium p-1 text-center">G</th>
-                                    <th class="font-medium p-1 text-center">A</th>
-                                    <th class="font-medium p-1 text-center">SOG</th>
-                                    <th class="font-medium p-1 text-center">HITS</th>
-                                    <th class="font-medium p-1 text-center">BS</th>
-                                    <th class="font-medium p-1 text-center">PIM</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-800">
-                                ${players.map(p => `
-                                    <tr>
-                                        <td class="p-1 font-medium">${p.name} <span class="text-gray-500">${p.position}</span></td>
-                                        <td class="p-1 text-center">${p.G}</td>
-                                        <td class="p-1 text-center">${p.A}</td>
-                                        <td class="p-1 text-center">${p.SOG}</td>
-                                        <td class="p-1 text-center">${p.HITS}</td>
-                                        <td class="p-1 text-center">${p.BS}</td>
-                                        <td class="p-1 text-center">${p.PIM}</td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    `;
+                        <table class="w-full text-xs text-left"><thead class="text-gray-400"><tr><th class="font-medium p-1">Player</th><th class="font-medium p-1 text-center">G</th><th class="font-medium p-1 text-center">A</th><th class="font-medium p-1 text-center">SOG</th><th class="font-medium p-1 text-center">HITS</th><th class="font-medium p-1 text-center">BS</th><th class="font-medium p-1 text-center">PIM</th></tr></thead><tbody class="divide-y divide-gray-800">
+                        ${players.map(p => `<tr><td class="p-1 font-medium">${p.name} <span class="text-gray-500">${p.position}</span></td><td class="p-1 text-center">${p.G}</td><td class="p-1 text-center">${p.A}</td><td class="p-1 text-center">${p.SOG}</td><td class="p-1 text-center">${p.HITS}</td><td class="p-1 text-center">${p.BS}</td><td class="p-1 text-center">${p.PIM}</td></tr>`).join('')}
+                        </tbody></table>`;
                 };
 
                 const hasAwayPlayers = playerStats && playerStats.away && playerStats.away.length > 0;
                 const hasHomePlayers = playerStats && playerStats.home && playerStats.home.length > 0;
                 let individualStatsHTML;
-
                 if (!hasAwayPlayers && !hasHomePlayers) {
-                    if (gameData.isCompleted) {
-                         individualStatsHTML = `<p class="text-center text-sm text-gray-500 py-4">Detailed player stats are not available for this game.</p>`;
-                    } else {
-                         individualStatsHTML = `<p class="text-center text-sm text-gray-500 py-4">Player stats will appear after the game starts.</p>`;
-                    }
+                    individualStatsHTML = `<p class="text-center text-sm text-gray-500 py-4">${gameData.isCompleted ? 'Detailed player stats are not available for this game.' : 'Player stats will appear after the game starts.'}</p>`;
                 } else {
-                    individualStatsHTML = `
-                        <div class="max-h-52 overflow-y-auto">
-                            ${renderPlayerTable(playerStats.away, gameData.awayTeam)}
-                            ${renderPlayerTable(playerStats.home, gameData.homeTeam)}
-                        </div>
-                    `;
+                    individualStatsHTML = `<div class="max-h-52 overflow-y-auto">${renderPlayerTable(playerStats.away, gameData.awayTeam)}${renderPlayerTable(playerStats.home, gameData.homeTeam)}</div>`;
                 }
 
-                // Build the detailed stats HTML
-                const modalContent = `
-                    <div class="flex justify-between items-center pb-2 border-b border-gray-700 mb-3">
-                        <h3 class="font-bold text-base">${gameData.awayTeam} @ ${gameData.homeTeam}</h3>
-                        <span class="text-xs px-2 py-1 bg-gray-700 rounded">${gameData.status}</span>
-                    </div>
-                    
-                    <div>
-                        <h4 class="font-semibold text-xs text-gray-400 uppercase mb-2">Team Stats</h4>
-                         <div class="grid grid-cols-3 gap-y-3 gap-x-4 text-sm text-center">
-                            <div>
-                                <p class="text-gray-400 text-xs">SHOTS</p>
-                                <p class="font-bold text-base">${teamStats.shotsOnGoal.away} - ${teamStats.shotsOnGoal.home}</p>
-                            </div>
-                            <div>
-                                <p class="text-gray-400 text-xs">HITS</p>
-                                <p class="font-bold text-base">${teamStats.hits.away} - ${teamStats.hits.home}</p>
-                            </div>
-                            <div>
-                                <p class="text-gray-400 text-xs">BLOCKS</p>
-                                <p class="font-bold text-base">${teamStats.blockedShots.away} - ${teamStats.blockedShots.home}</p>
-                            </div>
-                            <div>
-                                <p class="text-gray-400 text-xs">PIM</p>
-                                <p class="font-bold text-base">${teamStats.penaltyMinutes.away} - ${teamStats.penaltyMinutes.home}</p>
-                            </div>
-                            <div class="col-span-2">
-                                <p class="text-gray-400 text-xs">POWER PLAYS</p>
-                                <p class="font-bold text-base">${teamStats.powerPlays.away} - ${teamStats.powerPlays.home}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="border-t border-gray-700 mt-4 pt-3">
-                         <h4 class="font-semibold text-xs text-gray-400 uppercase mb-1">Individual Stats</h4>
-                         ${individualStatsHTML}
-                    </div>
-                `;
-                statsModal.innerHTML = modalContent;
-
+                statsModal.innerHTML = `
+                    <div class="flex justify-between items-center pb-2 border-b border-gray-700 mb-3"><h3 class="font-bold text-base">${gameData.awayTeam} @ ${gameData.homeTeam}</h3><span class="text-xs px-2 py-1 bg-gray-700 rounded">${gameData.status}</span></div>
+                    <div><h4 class="font-semibold text-xs text-gray-400 uppercase mb-2">Team Stats</h4><div class="grid grid-cols-3 gap-y-3 gap-x-4 text-sm text-center"><div><p class="text-gray-400 text-xs">SHOTS</p><p class="font-bold text-base">${teamStats.shotsOnGoal.away} - ${teamStats.shotsOnGoal.home}</p></div><div><p class="text-gray-400 text-xs">HITS</p><p class="font-bold text-base">${teamStats.hits.away} - ${teamStats.hits.home}</p></div><div><p class="text-gray-400 text-xs">BLOCKS</p><p class="font-bold text-base">${teamStats.blockedShots.away} - ${teamStats.blockedShots.home}</p></div><div><p class="text-gray-400 text-xs">PIM</p><p class="font-bold text-base">${teamStats.penaltyMinutes.away} - ${teamStats.penaltyMinutes.home}</p></div><div class="col-span-2"><p class="text-gray-400 text-xs">POWER PLAYS</p><p class="font-bold text-base">${teamStats.powerPlays.away} - ${teamStats.powerPlays.home}</p></div></div></div>
+                    <div class="border-t border-gray-700 mt-4 pt-3"><h4 class="font-semibold text-xs text-gray-400 uppercase mb-1">Individual Stats</h4>${individualStatsHTML}</div>`;
             } catch (error) {
                 console.error("Error fetching game stats:", error);
                 statsModal.innerHTML = `<p class="text-center text-red-400">Could not load game stats.</p>`;
@@ -351,18 +310,17 @@
         }
 
         function hideStatsModal() {
-            modalTimeout = setTimeout(() => {
-                statsModal.classList.add('hidden');
-            }, 100);
+            modalTimeout = setTimeout(() => { statsModal.classList.add('hidden'); }, 100);
         }
         
-        // Add listeners to the modal itself so it stays open when you move your mouse into it
         statsModal.addEventListener('mouseenter', () => clearTimeout(modalTimeout));
         statsModal.addEventListener('mouseleave', hideStatsModal);
 
-        // Initial fetch and setup refresh interval
+        // Initial fetch calls
         fetchScores();
-        setInterval(fetchScores, 15000);
+        setInterval(fetchScores, 15000); // Refresh scores every 15 seconds
+        fetchNews();
+        setInterval(fetchNews, 3600000); // Refresh news every hour
     </script>
 
 </body>
