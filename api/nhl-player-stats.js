@@ -27,61 +27,62 @@ export default async function handler(req, res) {
         data.leaders.forEach(category => {
             const statName = category.shortDisplayName; // e.g., "G", "A", "+/-"
             
-            // **FIX 2:** Add a defensive check to ensure the category has a leaders array.
-            // Sometimes the API might return a category object without any player entries.
             if (!category.leaders || !Array.isArray(category.leaders)) {
                 return; // Skip this category if it has no leaders array.
             }
 
             category.leaders.forEach(playerEntry => {
-                // **FIX 1:** Add a defensive check to ensure the entry has an athlete object.
-                // Sometimes the API returns entries that are not players.
-                if (!playerEntry.athlete) {
-                    return; // Skip this entry if it's not a valid player.
-                }
+                // **FINAL FIX:** Wrap each player's processing in a try/catch block.
+                // This prevents one bad player record from crashing the entire function.
+                try {
+                    if (!playerEntry.athlete || !playerEntry.athlete.id) {
+                        return; // Skip this entry if it's not a valid player.
+                    }
 
-                const player = playerEntry.athlete;
-                const playerId = player.id;
+                    const player = playerEntry.athlete;
+                    const playerId = player.id;
 
-                // Initialize player object if it's the first time we see them
-                if (!playerStats[playerId]) {
-                    playerStats[playerId] = {
-                        id: playerId,
-                        name: player.displayName,
-                        headshot: player.headshot?.href || 'https://placehold.co/100x100/333/FFFFFF?text=??',
-                        team: player.team?.abbreviation || 'N/A',
-                        position: player.position?.abbreviation || 'N/A',
-                        // Initialize all expected stats to 0 or 'N/A'
-                        gamesPlayed: 0,
-                        goals: 0,
-                        assists: 0,
-                        points: 0,
-                        plusMinus: 0,
-                        penaltyMinutes: '0',
-                        shotsOnGoal: 0,
-                        hits: 0,
-                        powerPlayGoals: 0,
-                        shortHandedGoals: 0,
-                        blockedShots: 0,
-                    };
-                }
+                    // Initialize player object if it's the first time we see them
+                    if (!playerStats[playerId]) {
+                        playerStats[playerId] = {
+                            id: playerId,
+                            name: player.displayName,
+                            headshot: player.headshot?.href || 'https://placehold.co/100x100/333/FFFFFF?text=??',
+                            team: player.team?.abbreviation || 'N/A',
+                            position: player.position?.abbreviation || 'N/A',
+                            // Initialize all expected stats to 0 or 'N/A'
+                            gamesPlayed: 0,
+                            goals: 0,
+                            assists: 0,
+                            points: 0,
+                            plusMinus: 0,
+                            penaltyMinutes: '0',
+                            shotsOnGoal: 0,
+                            hits: 0,
+                            powerPlayGoals: 0,
+                            shortHandedGoals: 0,
+                            blockedShots: 0,
+                        };
+                    }
 
-                // Update the specific stat for the player
-                // The stat value is stored in `playerEntry.value`
-                const value = playerEntry.value;
+                    // Update the specific stat for the player
+                    const value = playerEntry.value;
 
-                switch (statName) {
-                    case 'GP': playerStats[playerId].gamesPlayed = Math.round(value); break;
-                    case 'G': playerStats[playerId].goals = Math.round(value); break;
-                    case 'A': playerStats[playerId].assists = Math.round(value); break;
-                    case 'PTS': playerStats[playerId].points = Math.round(value); break;
-                    case '+/-': playerStats[playerId].plusMinus = Math.round(value); break;
-                    case 'PIM': playerStats[playerId].penaltyMinutes = playerEntry.displayValue; break;
-                    case 'SOG': playerStats[playerId].shotsOnGoal = Math.round(value); break;
-                    case 'HITS': playerStats[playerId].hits = Math.round(value); break;
-                    case 'PPG': playerStats[playerId].powerPlayGoals = Math.round(value); break;
-                    case 'SHG': playerStats[playerId].shortHandedGoals = Math.round(value); break;
-                    case 'BS': playerStats[playerId].blockedShots = Math.round(value); break;
+                    switch (statName) {
+                        case 'GP': playerStats[playerId].gamesPlayed = Math.round(value); break;
+                        case 'G': playerStats[playerId].goals = Math.round(value); break;
+                        case 'A': playerStats[playerId].assists = Math.round(value); break;
+                        case 'PTS': playerStats[playerId].points = Math.round(value); break;
+                        case '+/-': playerStats[playerId].plusMinus = Math.round(value); break;
+                        case 'PIM': playerStats[playerId].penaltyMinutes = playerEntry.displayValue; break;
+                        case 'SOG': playerStats[playerId].shotsOnGoal = Math.round(value); break;
+                        case 'HITS': playerStats[playerId].hits = Math.round(value); break;
+                        case 'PPG': playerStats[playerId].powerPlayGoals = Math.round(value); break;
+                        case 'SHG': playerStats[playerId].shortHandedGoals = Math.round(value); break;
+                        case 'BS': playerStats[playerId].blockedShots = Math.round(value); break;
+                    }
+                } catch (e) {
+                    console.warn("Could not process a player entry:", playerEntry, e);
                 }
             });
         });
