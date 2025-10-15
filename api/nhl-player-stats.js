@@ -1,16 +1,16 @@
 // api/nhl-player-stats.js
 
 // This is a complete rewrite for stability, using the single 'realtime' endpoint.
+// If running in Node.js, ensure fetch is available
+import fetch from 'node-fetch';
+
 export default async function handler(req, res) {
     // 1. Determine the season to fetch
     const { season } = req.query;
     const seasonId = season || '20232024'; 
-
-
-    // 2. Construct the single, reliable API URL
-    const url = `https://api.nhle.com/stats/rest/en/skater/summary?isAggregate=false&isGame=false&sort=[{"property":"hits","direction":"DESC"}]&limit=-1&cayenneExp=seasonId=${seasonId} and gameTypeId=2 and gamesPlayed>=1`;
-
-
+    // Use "points" for sorting skater stats, not "wins"
+    const url = `https://api.nhle.com/stats/rest/en/skater/summary?isAggregate=false&isGame=false&sort=[{"property":"points","direction":"DESC"}]&limit=-1&cayenneExp=seasonId=${seasonId} and gameTypeId=2 and gamesPlayed>=1`;
+    
     try {
         console.log(`[V2] Fetching all player stats from REALTIME endpoint for season ${seasonId}...`);
         const response = await fetch(url);
