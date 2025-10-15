@@ -11,12 +11,17 @@
             font-family: 'Inter', sans-serif;
             background-color: #000000;
         }
-        .card {
-            background-color: #111111;
-            border: 1px solid #333333;
-        }
-        .header-glow {
-            border-bottom: 1px solid #333333;
+        .header-glow { border-bottom: 1px solid #333333; }
+        .table-container { background-color: #111111; border: 1px solid #333333; }
+        .table-header { color: #8b949e; cursor: pointer; }
+        .table-header:hover { color: #c9d1d9; }
+        .table-row:hover { background-color: #1c1c1c; }
+        .player-headshot {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #222;
+            object-fit: cover;
         }
         .form-input {
             background-color: #222;
@@ -24,49 +29,21 @@
             color: white;
             border-radius: 6px;
             padding: 8px 12px;
-            width: 100%;
         }
-        .stats-table th {
+        .tab {
+            padding: 0.75rem 1.5rem;
             cursor: pointer;
-            position: relative;
-            padding-right: 20px;
-            transition: color 0.2s;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s ease;
         }
-        .stats-table th:hover { color: #FFD700; }
-        .stats-table th::after {
-            font-family: monospace;
-            opacity: 0.5;
-            position: absolute;
-            right: 5px;
-            top: 50%;
-            transform: translateY(-50%);
+        .tab-active {
+            color: #FFD700;
+            border-bottom-color: #FFD700;
         }
-        .stats-table th.sort-asc::after { content: '▲'; opacity: 1; color: #DC143C; }
-        .stats-table th.sort-desc::after { content: '▼'; opacity: 1; color: #DC143C; }
-        .player-headshot {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            object-fit: cover;
-            background-color: #333;
+        .tab:not(.tab-active):hover {
+            color: #f0f6fc;
+            background-color: rgba(255, 255, 255, 0.05);
         }
-        .nav-link {
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-weight: 500;
-            position: relative;
-            transition: color 0.2s;
-            color: #a0a0a0;
-        }
-        .nav-link.active {
-            color: #FFFFFF;
-            background-color: #222;
-        }
-        .nav-link:not(.active):hover {
-            color: #FFFFFF;
-        }
-        .admin-btn { background-color: transparent; border: 1px solid #FFD700; color: #FFD700; padding: 8px 16px; border-radius: 6px; font-weight: 600; }
-        .admin-btn:hover { background-color: rgba(255, 215, 0, 0.1); }
     </style>
 </head>
 <body class="text-gray-300">
@@ -77,176 +54,254 @@
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex items-center justify-between h-16">
                     <div class="flex items-center space-x-3">
-                        <svg class="h-8 w-8 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">...</svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-yellow-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM5.5 9.5a.5.5 0 01.5-.5h2a.5.5 0 01.5.5v2a.5.5 0 01-.5.5h-2a.5.5 0 01-.5-.5v-2zM12 5.5a.5.5 0 00-.5.5v2a.5.5 0 00.5.5h2a.5.5 0 00.5-.5v-2a.5.5 0 00-.5-.5h-2zM6 12a.5.5 0 00-.5.5v2a.5.5 0 00.5.5h2a.5.5 0 00.5-.5v-2a.5.5 0 00-.5-.5H6zM11.5 12a.5.5 0 01.5-.5h2a.5.5 0 01.5.5v2a.5.5 0 01-.5.5h-2a.5.5 0 01-.5-.5v-2z" clip-rule="evenodd" /></svg>
                         <h1 class="text-2xl font-bold text-white">Fox & Hounds Hockey League</h1>
                     </div>
-                    <nav class="flex items-center space-x-2">
-                        <a href="index.html" class="nav-link">League</a>
-                        <a href="player-stats.html" class="nav-link active">Player Stats</a>
+                    <nav class="flex items-center space-x-4">
+                        <a href="index.html" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium">League</a>
+                        <a href="player-stats.html" class="bg-gray-800 text-white px-3 py-2 rounded-md text-sm font-medium" aria-current="page">Player Stats</a>
                     </nav>
-                    <div>
-                        <!-- The admin buttons exist for layout consistency but are non-functional on this page -->
-                         <button class="admin-btn invisible">Admin Login</button>
-                    </div>
                 </div>
             </div>
         </header>
-        
+
         <!-- Main Content -->
         <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10">
-            <!-- Player Stats Page -->
-            <div id="page-player-stats">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-semibold text-white">NHL Player Stats</h2>
-                    <div class="flex items-center space-x-4 w-full max-w-lg">
-                        <input type="text" id="stats-search" placeholder="Search by player name..." class="form-input flex-grow">
-                        <div>
-                            <label for="season-select" class="text-sm text-gray-400 mr-2 whitespace-nowrap">Season:</label>
-                            <select id="season-select" class="form-input bg-gray-900 border-gray-700"></select>
-                        </div>
-                    </div>
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-semibold text-white">NHL Player Statistics</h2>
+                <div class="flex items-center space-x-4">
+                    <input type="text" id="search-input" class="form-input w-64" placeholder="Search by player name...">
+                    <select id="season-select" class="form-input"></select>
                 </div>
-                <div id="player-stats-container" class="card rounded-lg overflow-hidden">
-                    <!-- Stats table will be rendered here -->
+            </div>
+
+            <!-- Tabs -->
+            <div class="flex border-b border-gray-700 mb-6">
+                <div id="skaters-tab" class="tab tab-active" onclick="changeTab('skaters')">Skaters</div>
+                <div id="goalies-tab" class="tab" onclick="changeTab('goalies')">Goalies</div>
+            </div>
+
+            <div id="stats-container" class="table-container rounded-lg overflow-hidden">
+                <div id="message-container" class="hidden p-8 text-center text-gray-400"></div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-800">
+                        <thead id="stats-table-head" class="bg-gray-900">
+                            <!-- Header will be dynamically inserted here -->
+                        </thead>
+                        <tbody id="stats-table-body" class="divide-y divide-gray-800">
+                            <!-- Rows will be dynamically inserted here -->
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </main>
     </div>
 
 <script>
-    let allPlayerStats = [];
-    let sortColumn = { key: 'points', order: 'desc' };
+    let allStats = [];
+    let currentSort = { key: 'points', direction: 'desc' };
+    let activeTab = 'skaters';
 
     document.addEventListener('DOMContentLoaded', () => {
-        const seasonSelect = document.getElementById('season-select');
-        
-        populateSeasonSelector();
-        fetchAndRenderPlayerStats(seasonSelect.value);
-
-        document.getElementById('stats-search').addEventListener('input', () => renderPlayerStatsTable(allPlayerStats));
-        seasonSelect.addEventListener('change', () => fetchAndRenderPlayerStats(seasonSelect.value));
+        populateSeasonSelect();
+        fetchAndRenderStats();
+        document.getElementById('search-input').addEventListener('input', renderTable);
+        document.getElementById('season-select').addEventListener('change', fetchAndRenderStats);
     });
-
-    function populateSeasonSelector() {
+    
+    function populateSeasonSelect() {
         const select = document.getElementById('season-select');
         const currentYear = new Date().getFullYear();
-        const currentSeasonStartYear = new Date().getMonth() < 9 ? currentYear - 1 : currentYear;
+        const currentMonth = new Date().getMonth();
+        
+        let endYear = currentMonth >= 9 ? currentYear + 1 : currentYear;
 
         for (let i = 0; i < 4; i++) {
-            const startYear = currentSeasonStartYear - i;
-            const seasonId = `${startYear}${startYear + 1}`;
+            const seasonEnd = endYear - i;
+            const seasonStart = seasonEnd - 1;
+            const seasonId = `${seasonStart}${seasonEnd}`;
             const option = document.createElement('option');
             option.value = seasonId;
-            option.textContent = `${startYear}-${startYear + 1}`;
-            if (i === 0) {
-                 option.selected = true;
-            }
+            option.textContent = `${seasonStart}-${seasonEnd} Season`;
             select.appendChild(option);
         }
     }
 
-    async function fetchAndRenderPlayerStats(seasonId) {
-        const container = document.getElementById('player-stats-container');
-        container.innerHTML = `<div class="p-8 text-center text-gray-400">Loading player stats...</div>`;
+    function changeTab(tabName) {
+        if (tabName === activeTab) return;
+        activeTab = tabName;
 
+        document.getElementById('skaters-tab').classList.toggle('tab-active', activeTab === 'skaters');
+        document.getElementById('goalies-tab').classList.toggle('tab-active', activeTab === 'goalies');
+
+        // Reset sort for the new tab
+        currentSort = activeTab === 'skaters' ? { key: 'points', direction: 'desc' } : { key: 'wins', direction: 'desc' };
+        
+        fetchAndRenderStats();
+    }
+
+    async function fetchAndRenderStats() {
+        const season = document.getElementById('season-select').value;
+        const apiEndpoint = activeTab === 'skaters' ? 'nhl-player-stats' : 'nhl-goalie-stats';
+        
+        showMessage('loading');
         try {
-            const response = await fetch(`/api/nhl-player-stats?season=${seasonId}`);
-            if (!response.ok) throw new Error('Network response was not ok');
+            const response = await fetch(`/api/${apiEndpoint}?season=${season}`);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            allStats = await response.json();
             
-            allPlayerStats = await response.json();
-            
-            if (allPlayerStats.length === 0) {
-                 container.innerHTML = `<div class="p-8 text-center text-gray-400">No player stats found for the ${seasonId.slice(0,4)}-${seasonId.slice(4)} season.</div>`;
-                 return;
+            if (allStats.length > 0) {
+                renderTable();
+            } else {
+                showMessage('no-players');
             }
-
-            renderPlayerStatsTable(allPlayerStats);
         } catch (error) {
-            console.error('Failed to fetch player stats:', error);
-            container.innerHTML = `<div class="p-8 text-center text-red-400">Could not load player stats. Please try again later.</div>`;
+            console.error('Fetch error:', error);
+            showMessage('error');
         }
     }
 
-    function renderPlayerStatsTable(stats) {
-        const container = document.getElementById('player-stats-container');
-        const searchTerm = document.getElementById('stats-search').value.toLowerCase();
-        const filteredStats = stats.filter(p => p.name.toLowerCase().includes(searchTerm));
+    function renderTable() {
+        const searchTerm = document.getElementById('search-input').value.toLowerCase();
+        
+        const filteredStats = allStats.filter(p => p.name.toLowerCase().includes(searchTerm));
         
         filteredStats.sort((a, b) => {
-            const valA = a[sortColumn.key];
-            const valB = b[sortColumn.key];
-            const sortOrder = sortColumn.order === 'asc' ? 1 : -1;
-            if (valA < valB) return -1 * sortOrder;
-            if (valA > valB) return 1 * sortOrder;
+            let valA = a[currentSort.key];
+            let valB = b[currentSort.key];
+
+            // Special handling for string-based PIM
+            if (currentSort.key === 'penaltyMinutes') {
+                valA = parseInt(valA);
+                valB = parseInt(valB);
+            }
+            
+            if (valA < valB) return currentSort.direction === 'asc' ? -1 : 1;
+            if (valA > valB) return currentSort.direction === 'asc' ? 1 : -1;
             return 0;
         });
 
+        if (activeTab === 'skaters') {
+            renderSkatersTable(filteredStats);
+        } else {
+            renderGoaliesTable(filteredStats);
+        }
+    }
+
+    function renderSkatersTable(stats) {
+        const head = document.getElementById('stats-table-head');
+        const body = document.getElementById('stats-table-body');
+        
         const headers = [
             { key: 'name', label: 'Player' }, { key: 'team', label: 'Team' },
-            { key: 'position', label: 'Pos' }, { key: 'gamesPlayed', label: 'GP' },
-            { key: 'goals', label: 'G' }, { key: 'assists', label: 'A' },
-            { key: 'points', label: 'P' }, { key: 'plusMinus', label: '+/-' },
-            { key: 'penaltyMinutes', label: 'PIM' }, { key: 'shotsOnGoal', label: 'SOG' },
-            { key: 'hits', label: 'HITS' }, { key: 'powerPlayGoals', label: 'PPG' },
-            { key: 'shortHandedGoals', label: 'SHG' }, { key: 'blockedShots', label: 'BS' }
+            { key: 'gamesPlayed', label: 'GP' }, { key: 'goals', label: 'G' },
+            { key: 'assists', label: 'A' }, { key: 'points', label: 'P' },
+            { key: 'plusMinus', label: '+/-' }, { key: 'penaltyMinutes', label: 'PIM' },
+            { key: 'powerPlayGoals', label: 'PPG' }, { key: 'hits', label: 'HITS' },
+            { key: 'blockedShots', label: 'BLK' }
         ];
 
-        const headerHtml = headers.map(h => {
-            let sortClass = '';
-            if (h.key === sortColumn.key) {
-                sortClass = sortColumn.order === 'asc' ? 'sort-asc' : 'sort-desc';
-            }
-            return `<th data-key="${h.key}" class="p-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider ${sortClass}">${h.label}</th>`;
-        }).join('');
+        head.innerHTML = `<tr>
+            ${headers.map(h => `<th class="table-header px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" onclick="setSort('${h.key}')">${h.label}</th>`).join('')}
+        </tr>`;
 
-        const bodyHtml = filteredStats.map(p => `
-            <tr class="border-b border-gray-800 hover:bg-gray-800/50">
-                <td class="p-3 whitespace-nowrap">
+        body.innerHTML = stats.map(player => `
+            <tr class="table-row">
+                <td class="px-4 py-2 whitespace-nowrap">
                     <div class="flex items-center">
-                        <img src="${p.headshot}" alt="${p.name}" class="player-headshot" onerror="this.src='https://placehold.co/40x40/333333/FFFFFF?text=${p.name.charAt(0)}'">
-                        <div class="ml-3">
-                            <div class="text-sm font-medium text-white">${p.name}</div>
+                        <img class="player-headshot" src="${player.headshot}" onerror="this.src='https://placehold.co/100x100/111111/FFFFFF?text=?';" alt="${player.name}">
+                        <div class="ml-4">
+                            <div class="text-sm font-medium text-white">${player.name}</div>
+                            <div class="text-sm text-gray-400">${player.position}</div>
                         </div>
                     </div>
                 </td>
-                <td class="p-3 text-sm text-gray-300">${p.team}</td>
-                <td class="p-3 text-sm text-gray-300">${p.position}</td>
-                <td class="p-3 text-sm text-gray-300">${p.gamesPlayed}</td>
-                <td class="p-3 text-sm text-gray-300">${p.goals}</td>
-                <td class="p-3 text-sm text-gray-300">${p.assists}</td>
-                <td class="p-3 text-sm text-white font-semibold">${p.points}</td>
-                <td class="p-3 text-sm text-gray-300">${p.plusMinus}</td>
-                <td class="p-3 text-sm text-gray-300">${p.penaltyMinutes}</td>
-                <td class="p-3 text-sm text-gray-300">${p.shotsOnGoal}</td>
-                <td class="p-3 text-sm text-gray-300">${p.hits}</td>
-                <td class="p-3 text-sm text-gray-300">${p.powerPlayGoals}</td>
-                <td class="p-3 text-sm text-gray-300">${p.shortHandedGoals}</td>
-                <td class="p-3 text-sm text-gray-300">${p.blockedShots}</td>
+                <td class="px-4 py-2 text-sm">${player.team}</td>
+                <td class="px-4 py-2 text-sm">${player.gamesPlayed}</td>
+                <td class="px-4 py-2 text-sm">${player.goals}</td>
+                <td class="px-4 py-2 text-sm">${player.assists}</td>
+                <td class="px-4 py-2 text-sm font-bold text-white">${player.points}</td>
+                <td class="px-4 py-2 text-sm">${player.plusMinus}</td>
+                <td class="px-4 py-2 text-sm">${player.penaltyMinutes}</td>
+                <td class="px-4 py-2 text-sm">${player.powerPlayGoals}</td>
+                <td class="px-4 py-2 text-sm">${player.hits}</td>
+                <td class="px-4 py-2 text-sm">${player.blockedShots}</td>
             </tr>
         `).join('');
+        showMessage(null);
+    }
+    
+    function renderGoaliesTable(stats) {
+        const head = document.getElementById('stats-table-head');
+        const body = document.getElementById('stats-table-body');
 
-        container.innerHTML = `
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-800 stats-table">
-                    <thead class="bg-gray-900/50"><tr>${headerHtml}</tr></thead>
-                    <tbody class="divide-y divide-gray-800">${bodyHtml}</tbody>
-                </table>
-            </div>
-        `;
+        const headers = [
+            { key: 'name', label: 'Player' }, { key: 'team', label: 'Team' },
+            { key: 'gamesPlayed', label: 'GP' }, { key: 'wins', label: 'W' },
+            { key: 'losses', label: 'L' }, { key: 'otLosses', label: 'OT' },
+            { key: 'savePercentage', label: 'SV%' }, { key: 'goalsAgainstAverage', label: 'GAA' },
+            { key: 'shutouts', label: 'SO' }
+        ];
+
+        head.innerHTML = `<tr>
+            ${headers.map(h => `<th class="table-header px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" onclick="setSort('${h.key}')">${h.label}</th>`).join('')}
+        </tr>`;
+
+        body.innerHTML = stats.map(goalie => `
+            <tr class="table-row">
+                <td class="px-4 py-2 whitespace-nowrap">
+                    <div class="flex items-center">
+                        <img class="player-headshot" src="${goalie.headshot}" onerror="this.src='https://placehold.co/100x100/111111/FFFFFF?text=?';" alt="${goalie.name}">
+                        <div class="ml-4">
+                            <div class="text-sm font-medium text-white">${goalie.name}</div>
+                        </div>
+                    </div>
+                </td>
+                <td class="px-4 py-2 text-sm">${goalie.team}</td>
+                <td class="px-4 py-2 text-sm">${goalie.gamesPlayed}</td>
+                <td class="px-4 py-2 text-sm font-bold text-white">${goalie.wins}</td>
+                <td class="px-4 py-2 text-sm">${goalie.losses}</td>
+                <td class="px-4 py-2 text-sm">${goalie.otLosses}</td>
+                <td class="px-4 py-2 text-sm">${goalie.savePercentage}</td>
+                <td class="px-4 py-2 text-sm">${goalie.goalsAgainstAverage}</td>
+                <td class="px-4 py-2 text-sm">${goalie.shutouts}</td>
+            </tr>
+        `).join('');
+        showMessage(null);
+    }
+
+    function setSort(key) {
+        if (currentSort.key === key) {
+            currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+            currentSort.key = key;
+            currentSort.direction = 'desc';
+        }
+        renderTable();
+    }
+
+    function showMessage(type) {
+        const msgContainer = document.getElementById('message-container');
+        const tableHead = document.getElementById('stats-table-head');
+        const tableBody = document.getElementById('stats-table-body');
+
+        msgContainer.classList.add('hidden');
+        tableHead.classList.remove('hidden');
+        tableBody.classList.remove('hidden');
+
+        let message = '';
+        if (type === 'loading') message = 'Loading player stats...';
+        if (type === 'error') message = 'Could not load player stats. Please try again later.';
+        if (type === 'no-players') message = 'No players found for the selected season.';
         
-        container.querySelectorAll('th').forEach(th => {
-            th.addEventListener('click', () => {
-                const key = th.dataset.key;
-                if (sortColumn.key === key) {
-                    sortColumn.order = sortColumn.order === 'asc' ? 'desc' : 'asc';
-                } else {
-                    sortColumn.key = key;
-                    sortColumn.order = 'desc';
-                }
-                renderPlayerStatsTable(stats);
-            });
-        });
+        if (message) {
+            msgContainer.textContent = message;
+            msgContainer.classList.remove('hidden');
+            tableHead.classList.add('hidden');
+            tableBody.classList.add('hidden');
+        }
     }
 </script>
 </body>
 </html>
+

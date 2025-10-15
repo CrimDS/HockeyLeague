@@ -4,7 +4,7 @@ export default async function handler(req, res) {
     const { season } = req.query;
     const seasonId = season || '20232024'; 
     
-    // **FIX**: We will now fetch from three separate endpoints and merge the data.
+    // We will now fetch from three separate endpoints and merge the data.
     const baseUrl = `https://api.nhle.com/stats/rest/en/skater`;
     const commonParams = `isAggregate=false&isGame=false&limit=-1&cayenneExp=seasonId=${seasonId} and gameTypeId=2 and gamesPlayed>=1`;
 
@@ -59,9 +59,7 @@ export default async function handler(req, res) {
                 points: player.points,
                 plusMinus: player.plusMinus,
                 penaltyMinutes: String(player.penaltyMinutes),
-                shotsOnGoal: player.shots,
                 powerPlayGoals: player.ppGoals,
-                shortHandedGoals: player.shGoals,
                 hits: 0, // Default value
                 blockedShots: 0, // Default value
             });
