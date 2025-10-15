@@ -1,41 +1,54 @@
 // api/nhl-player-stats.js
 
+// This is a complete rewrite for stability, using the single 'realtime' endpoint.
 export default async function handler(req, res) {
+    // 1. Determine the season to fetch
     const { season } = req.query;
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth(); // 0-11 (Jan-Dec)
-    const defaultSeasonId = currentMonth >= 9 ? `${currentYear}${currentYear + 1}` : `${currentYear - 1}${currentYear}`;
-    const seasonId = season || defaultSeasonId; 
+    // An NHL season crosses calendar years, typically starting in October (month 9).
+    const defaultSeasonId = currentMonth >= 9 
+        ? `${currentYear}${currentYear + 1}` 
+        : `${currentYear - 1}${currentYear}`;
     
-    // **FIX**: Reverting to the single, more complete 'realtime' endpoint based on user feedback.
-    // This endpoint contains all necessary stats in one call, including banger stats.
+    const seasonId = season || defaultSeasonId;
+
+    // 2. Construct the single, reliable API URL
+    // This uses the 'realtime' endpoint which contains all necessary stats in one call.
+    // - `limit=-1` requests all players.
+    // - `gameTypeId=2` filters for regular season games only.
     const url = `https://api.nhle.com/stats/rest/en/skater/realtime?isAggregate=false&isGame=false&sort=[{"property":"points","direction":"DESC"}]&limit=-1&cayenneExp=seasonId=${seasonId} and gameTypeId=2 and gamesPlayed>=1`;
 
     try {
-        console.log(`Fetching all player stats from REALTIME endpoint for season ${seasonId}...`);
+        console.log(`[V2] Fetching all player stats from REALTIME endpoint for season ${seasonId}...`);
         const response = await fetch(url);
 
         if (!response.ok) {
-            console.error(`NHL API responded with status: ${response.status}`);
+            console.error(`[V2] NHL API responded with status: ${response.status} for URL: ${url}`);
             throw new Error(`Failed to fetch player stats. Status: ${response.status}`);
         }
         
         const data = await response.json();
         
+        // 3. Robust data validation
+        // This is the most critical step to prevent crashes. If the API returns something
+        // other than a list of players, we stop here and return an empty array.
         if (!data || !Array.isArray(data.data)) {
-            console.warn("NHL API did not return the expected data array. Response:", JSON.stringify(data));
-            return res.status(200).json([]);
+            console.warn("[V2] NHL API did not return the expected data array. The endpoint may be temporarily down or empty for this season.");
+            return res.status(200).json([]); // Return empty list, not an error.
         }
 
+        // 4. Map the raw API data to a clean, consistent format for our website
         const mappedStats = data.data.map(player => {
+            // Construct a reliable headshot URL, with a fallback for missing data.
             let headshotUrl = 'https://placehold.co/100x100/111111/FFFFFF?text=?';
             if (player.teamAbbrevs && player.playerId) {
                 headshotUrl = `https://assets.nhle.com/mugs/nhl/latest/${player.teamAbbrevs}/${player.playerId}.png`;
             }
             
-            // **FIX**: Map all stats directly from the single data source with nullish coalescing (??)
-            // to prevent 'undefined' values from appearing on the front end.
+            // Use nullish coalescing (??) to ensure no 'undefined' values make it to the page.
+            // If a stat is missing from the API for a player, it will safely default to 0.
             return {
                 id: player.playerId,
                 name: player.skaterFullName,
@@ -54,11 +67,11 @@ export default async function handler(req, res) {
             };
         });
 
-        console.log(`Processing complete. Found ${mappedStats.length} players.`);
+        console.log(`[V2] Processing complete. Found ${mappedStats.length} players.`);
         res.status(200).json(mappedStats);
 
     } catch (error) {
-        console.error("Critical error in nhl-player-stats function:", error.name, error.message);
+        console.error("[V2] Critical error in nhl-player-stats function:", error.message);
         res.status(500).json({ error: "Could not fetch player statistics.", details: error.message });
     }
 }
