@@ -9,7 +9,8 @@ export default async function handler(req, res) {
     const { season } = req.query;
     const seasonId = season || '20232024'; 
     // Use "points" for sorting skater stats, not "wins"
-    const url = `https://api.nhle.com/stats/rest/en/skater/summary?isAggregate=false&isGame=false&sort=[{"property":"points","direction":"DESC"}]&limit=-1&cayenneExp=seasonId=${seasonId} and gameTypeId=2 and gamesPlayed>=1`;
+    const cayenneExp = encodeURIComponent(`seasonId=${seasonId} and gameTypeId=2`);
+    const url = `https://api.nhle.com/stats/rest/en/skater/realtime?limit=-1&cayenneExp=${cayenneExp}`;
     
     try {
         console.log(`[V2] Fetching all player stats from REALTIME endpoint for season ${seasonId}...`);
