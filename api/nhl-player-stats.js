@@ -2,13 +2,21 @@
 
 export default async function handler(req, res) {
     // This endpoint now fetches player statistics directly from the NHL's undocumented API.
-    // **FIX**: Changed from "/current" to a specific season to ensure data is available during the off-season.
-    const url = "https://api-web.nhle.com/v1/skater-stats-leaders/20232024";
+    // **NEW**: It now accepts a 'season' query parameter, e.g., /api/nhl-player-stats?season=20222023
+    const { season } = req.query;
+    const seasonId = season || '20232024'; // Default to the most recent full season.
+
+    const url = `https://api-web.nhle.com/v1/skater-stats-leaders/${seasonId}`;
 
     try {
         console.log(`Fetching player stats from NHL API URL: ${url}`);
         const response = await fetch(url);
         if (!response.ok) {
+            // Handle cases where a season doesn't exist (e.g., future season) by returning an empty list.
+            if (response.status === 404) {
+                 console.warn(`No data found for season ${seasonId}. The season may not exist or has no stats.`);
+                 return res.status(200).json([]);
+            }
             console.error(`NHL API responded with status: ${response.status}`);
             throw new Error(`Failed to fetch player stats. Status: ${response.status}`);
         }
