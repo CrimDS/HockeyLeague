@@ -17,25 +17,40 @@ export default async function handler(req, res) {
 
         const data = await response.json();
 
-        // --- Data Parsing ---
+        // --- Data Parsing for Banger Stats ---
         // The following section carefully extracts the specific stats we want from the complex ESPN response.
         
         const boxscore = data.boxscore;
+        const awayTeamStats = boxscore.teams[1].statistics;
+        const homeTeamStats = boxscore.teams[0].statistics;
 
-        // Find Shots on Goal for both teams
-        const awayShotsStat = boxscore.teams[1].statistics.find(s => s.name === 'shotsOnGoal');
-        const homeShotsStat = boxscore.teams[0].statistics.find(s => s.name === 'shotsOnGoal');
-        const shotsOnGoal = {
-            away: awayShotsStat ? parseInt(awayShotsStat.displayValue) : 0,
-            home: homeShotsStat ? parseInt(homeShotsStat.displayValue) : 0,
+        // Helper function to find a specific stat's value
+        const getStat = (statsArray, statName) => {
+            const stat = statsArray.find(s => s.name === statName);
+            // Use displayValue for strings (like PP) and parse integer for numbers
+            return stat ? (stat.displayValue.includes('/') ? stat.displayValue : parseInt(stat.displayValue)) : 0;
         };
-
-        // Find Power Play data
-        const awayPPStat = boxscore.teams[1].statistics.find(s => s.name === 'powerPlay');
-        const homePPStat = boxscore.teams[0].statistics.find(s => s.name === 'powerPlay');
+        
+        // Extract all the relevant stats
+        const shotsOnGoal = {
+            away: getStat(awayTeamStats, 'shotsOnGoal'),
+            home: getStat(homeTeamStats, 'shotsOnGoal'),
+        };
+        const hits = {
+            away: getStat(awayTeamStats, 'hits'),
+            home: getStat(homeTeamStats, 'hits'),
+        };
+        const blockedShots = {
+            away: getStat(awayTeamStats, 'blockedShots'),
+            home: getStat(homeTeamStats, 'blockedShots'),
+        };
+        const penaltyMinutes = {
+            away: getStat(awayTeamStats, 'penaltyMinutes'),
+            home: getStat(homeTeamStats, 'penaltyMinutes'),
+        };
         const powerPlays = {
-            away: awayPPStat ? awayPPStat.displayValue : '0/0',
-            home: homePPStat ? homePPStat.displayValue : '0/0',
+            away: getStat(awayTeamStats, 'powerPlay') || '0/0',
+            home: getStat(homeTeamStats, 'powerPlay') || '0/0',
         };
 
         // Get the list of scoring plays
@@ -50,6 +65,9 @@ export default async function handler(req, res) {
         // Combine all the parsed data into a single, clean object
         const gameStats = {
             shotsOnGoal,
+            hits,
+            blockedShots,
+            penaltyMinutes,
             powerPlays,
             scoringPlays,
         };
@@ -62,3 +80,4 @@ export default async function handler(req, res) {
         res.status(500).json({ error: 'An error occurred while fetching game stats.' });
     }
 }
+
