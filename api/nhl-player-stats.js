@@ -48,8 +48,6 @@ export default async function handler(req, res) {
                 plusMinus: player.plusMinus,
                 penaltyMinutes: String(player.penaltyMinutes),
                 powerPlayGoals: player.ppGoals,
-                // **FIX**: Initialize Hits and Blocked Shots to 0.
-                // The summary endpoint doesn't contain these, so they would otherwise be undefined.
                 hits: 0,
                 blockedShots: 0,
             });
@@ -83,7 +81,8 @@ export default async function handler(req, res) {
                 if (blocksData && Array.isArray(blocksData.data)) {
                      blocksData.data.forEach(player => {
                         if (playerStats.has(player.playerId)) {
-                            playerStats.get(player.playerId).blockedShots = player.blocks ?? 0;
+                            // **FIX**: Changed `player.blocks` to `player.blockedShots` to match the correct API property name.
+                            playerStats.get(player.playerId).blockedShots = player.blockedShots ?? 0;
                         }
                     });
                 }
