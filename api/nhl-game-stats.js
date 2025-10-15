@@ -5,9 +5,12 @@ export const config = {
 };
 
 // A helper function to safely find and extract a statistic.
-// If the stat is not found, it returns a default value.
-const getStat = (teamStats, statName, defaultValue) => {
-  const stat = teamStats.find(s => s.name === statName);
+// If the stat is not found or the stats array is missing, it returns a default value.
+const getStat = (statsArray, statName, defaultValue) => {
+  if (!statsArray) {
+    return defaultValue;
+  }
+  const stat = statsArray.find(s => s.name === statName);
   return stat ? stat.displayValue : defaultValue;
 };
 
@@ -34,8 +37,18 @@ export default async function handler(request) {
     }
     const data = await response.json();
 
-    const homeTeam = data.boxscore.teams.find(t => t.team.homeAway === 'home');
-    const awayTeam = data.boxscore.teams.find(t => t.team.homeAway === 'away');
+    const homeTeam = data.boxscore?.teams?.find(t => t.team.homeAway === 'home');
+    const awayTeam = data.boxscore?.teams?.find(t => t.team.homeAway === 'away');
+
+    // If team data is missing in the API response, we cannot proceed.
+    // Return a specific message that the front-end can display.
+    if (!homeTeam || !awayTeam) {
+      console.warn(`Incomplete data for game ID ${gameId}: Missing home or away team.`);
+      return new Response(JSON.stringify({ error: 'Detailed stats are not yet available for this game.' }), {
+        status: 404, // Use 404 to indicate stats are not found
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
 
     // --- TEAM STATS ---
     const teamStats = {
