@@ -1,4 +1,4 @@
-// This function fetches detailed game statistics, including "banger" stats, for a specific NHL game.
+// This function fetches detailed team game statistics for a specific NHL game.
 // It's designed to be robust and handle cases where stats may not be available.
 export const config = {
   runtime: 'edge',
@@ -40,12 +40,11 @@ export default async function handler(request) {
     const homeTeam = data.boxscore?.teams?.find(t => t.team.homeAway === 'home');
     const awayTeam = data.boxscore?.teams?.find(t => t.team.homeAway === 'away');
 
-    // If team data is missing in the API response, we cannot proceed.
-    // Return a specific message that the front-end can display.
+    // If team data is missing, we cannot proceed.
     if (!homeTeam || !awayTeam) {
       console.warn(`Incomplete data for game ID ${gameId}: Missing home or away team.`);
       return new Response(JSON.stringify({ error: 'Detailed stats are not yet available for this game.' }), {
-        status: 404, // Use 404 to indicate stats are not found
+        status: 404,
         headers: { 'Content-Type': 'application/json' },
       });
     }
@@ -74,39 +73,11 @@ export default async function handler(request) {
       },
     };
 
-    // --- INDIVIDUAL PLAYER STATS ---
-    const parsePlayerStats = (players) => {
-      if (!players) return [];
-      return players
-        .filter(p => 
-          p.stats && p.stats.length > 0 && // Player must have stats
-          p.position && p.position.abbreviation !== 'G' && // Player must have a position and not be a Goalie
-          p.athlete // Player must have athlete data (for the name)
-        )
-        .map(p => ({
-          name: p.athlete.displayName,
-          position: p.position.abbreviation,
-          G: getStat(p.stats, 'goals', '0'),
-          A: getStat(p.stats, 'assists', '0'),
-          SOG: getStat(p.stats, 'shotsOnGoal', '0'),
-          HITS: getStat(p.stats, 'hits', '0'),
-          BS: getStat(p.stats, 'blockedShots', '0'),
-          PIM: getStat(p.stats, 'penaltyMinutes', '0'),
-        }))
-        // Sort players with goals or assists to the top
-        .sort((a, b) => (parseInt(b.G) + parseInt(b.A)) - (parseInt(a.G) + parseInt(a.A)));
-    };
-
-    const individualPlayerStats = {
-      away: parsePlayerStats(awayTeam.athletes),
-      home: parsePlayerStats(homeTeam.athletes),
-    };
-
-    return new Response(JSON.stringify({ teamStats, individualPlayerStats }), {
+    return new Response(JSON.stringify({ teamStats }), {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=5', // Cache for 10 seconds
+        'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=5',
       },
     });
 
