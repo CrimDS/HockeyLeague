@@ -112,8 +112,9 @@
     function populateSeasonSelect() {
         const select = document.getElementById('season-select');
         const currentYear = new Date().getFullYear();
-        const currentMonth = new Date().getMonth();
+        const currentMonth = new Date().getMonth(); // 0-11 (Jan-Dec)
         
+        // A new NHL season starts in October (month 9)
         let endYear = currentMonth >= 9 ? currentYear + 1 : currentYear;
 
         for (let i = 0; i < 4; i++) {
@@ -150,10 +151,11 @@
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             allStats = await response.json();
             
-            if (allStats.length > 0) {
+            // Added safety check for the response format
+            if (Array.isArray(allStats) && allStats.length > 0) {
                 renderTable();
             } else {
-                showMessage('no-players');
+                 showMessage(allStats.error ? 'error' : 'no-players');
             }
         } catch (error) {
             console.error('Fetch error:', error);
@@ -170,10 +172,10 @@
             let valA = a[currentSort.key];
             let valB = b[currentSort.key];
 
-            // Special handling for string-based PIM
-            if (currentSort.key === 'penaltyMinutes') {
-                valA = parseInt(valA);
-                valB = parseInt(valB);
+            // Special handling for string-based PIM or SV%
+            if (currentSort.key === 'penaltyMinutes' || typeof valA === 'string') {
+                valA = parseFloat(valA) || 0;
+                valB = parseFloat(valB) || 0;
             }
             
             if (valA < valB) return currentSort.direction === 'asc' ? -1 : 1;
