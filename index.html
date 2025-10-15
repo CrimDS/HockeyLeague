@@ -138,6 +138,7 @@
         const scoreboardContainer = document.getElementById('scoreboard-container');
         const statsModal = document.getElementById('game-stats-modal');
         let allScoresData = []; // Store score data globally
+        let modalTimeout; // To handle hover delays
 
         async function fetchScores() {
             try {
@@ -226,36 +227,71 @@
             });
         }
 
-        function showStatsModal(event, gameId) {
+        async function showStatsModal(event, gameId) {
+            clearTimeout(modalTimeout); // Stop the modal from hiding if we move to a new item
             const gameData = allScoresData.find(g => g.id === gameId);
             if (!gameData) return;
 
-            // --- NOTE ---
-            // For a full implementation, you would fetch detailed stats here:
-            // const detailedStats = await fetch(`/api/nhl-game-stats?id=${gameId}`);
-            // For now, we'll just display the data we already have.
+            statsModal.innerHTML = `<p class="text-center text-gray-400">Loading game stats...</p>`;
             
-            const modalContent = `
-                <div class="flex justify-between items-center pb-2 border-b border-gray-700">
-                    <h3 class="font-bold">${gameData.awayTeam} @ ${gameData.homeTeam}</h3>
-                    <span class="text-xs px-2 py-1 bg-gray-700 rounded">${gameData.status}</span>
-                </div>
-                <div class="mt-3 text-sm space-y-2">
-                    <p><span class="font-semibold">Date:</span> ${new Date(gameData.time).toLocaleDateString()}</p>
-                    <p class="text-gray-400 italic">More detailed stats like shots on goal, power plays, and top performers would be loaded here from a dedicated game summary API endpoint.</p>
-                </div>
-            `;
-            statsModal.innerHTML = modalContent;
-
             const targetRect = event.currentTarget.getBoundingClientRect();
             statsModal.style.left = `${targetRect.left}px`;
-            statsModal.style.top = `${targetRect.bottom + window.scrollY + 10}px`; // Position below the game card
+            statsModal.style.top = `${targetRect.bottom + window.scrollY + 10}px`;
             statsModal.classList.remove('hidden');
+
+            try {
+                // Fetch detailed stats from our new endpoint
+                const response = await fetch(`/api/nhl-game-stats?id=${gameId}`);
+                if (!response.ok) throw new Error('Failed to load stats');
+                const stats = await response.json();
+
+                // Build the detailed stats HTML
+                const modalContent = `
+                    <div class="flex justify-between items-center pb-2 border-b border-gray-700 mb-3">
+                        <h3 class="font-bold text-base">${gameData.awayTeam} @ ${gameData.homeTeam}</h3>
+                        <span class="text-xs px-2 py-1 bg-gray-700 rounded">${gameData.status}</span>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4 text-sm mb-3">
+                        <div class="text-center">
+                            <p class="text-gray-400 text-xs">SHOTS ON GOAL</p>
+                            <p class="font-bold text-lg">${stats.shotsOnGoal.away} - ${stats.shotsOnGoal.home}</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-gray-400 text-xs">POWER PLAYS</p>
+                            <p class="font-bold text-lg">${stats.powerPlays.away} - ${stats.powerPlays.home}</p>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h4 class="font-semibold text-xs text-gray-400 mb-2">SCORING SUMMARY</h4>
+                        <ul class="text-xs space-y-2">
+                            ${stats.scoringPlays && stats.scoringPlays.length > 0 ? stats.scoringPlays.map(play => `
+                                <li class="flex justify-between items-center">
+                                    <span class="truncate pr-2" title="${play.text}">${play.text}</span>
+                                    <span class="flex-shrink-0 font-mono text-gray-500">${play.period} ${play.time}</span>
+                                </li>
+                            `).join('') : '<li class="text-gray-500">No scoring plays yet.</li>'}
+                        </ul>
+                    </div>
+                `;
+                statsModal.innerHTML = modalContent;
+
+            } catch (error) {
+                console.error("Error fetching game stats:", error);
+                statsModal.innerHTML = `<p class="text-center text-red-400">Could not load game stats.</p>`;
+            }
         }
 
         function hideStatsModal() {
-            statsModal.classList.add('hidden');
+            modalTimeout = setTimeout(() => {
+                statsModal.classList.add('hidden');
+            }, 100);
         }
+        
+        // Add listeners to the modal itself so it stays open when you move your mouse into it
+        statsModal.addEventListener('mouseenter', () => clearTimeout(modalTimeout));
+        statsModal.addEventListener('mouseleave', hideStatsModal);
 
         // Initial fetch and setup refresh interval
         fetchScores();
@@ -264,5 +300,4 @@
 
 </body>
 </html>
-
 
