@@ -22,7 +22,7 @@
             width: 100%;
         }
 
-        .scoreboard-container {
+        #scoreboard-container {
             display: flex;
             width: fit-content; /* Let the container be as wide as its content */
             animation: scrollLeft 60s linear infinite;
@@ -30,13 +30,13 @@
             white-space: nowrap; /* Prevent items from wrapping */
         }
         
-        .scrolling-wrapper:hover .scoreboard-container {
+        .scrolling-wrapper:hover #scoreboard-container {
             animation-play-state: paused;
         }
 
         /* Hide the original scrollbar */
-        .scoreboard-container::-webkit-scrollbar { display: none; }
-        .scoreboard-container { -ms-overflow-style: none; scrollbar-width: none; }
+        #scoreboard-container::-webkit-scrollbar { display: none; }
+        #scoreboard-container { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-200">
@@ -264,4 +264,5 @@
 
 </body>
 </html>
+
 
