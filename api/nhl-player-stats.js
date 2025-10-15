@@ -5,9 +5,9 @@ export default async function handler(req, res) {
     // Default to the most recent full season if none is provided.
     const seasonId = season || '20232024'; 
     
-    // **FIX**: Switched to the newer, more stable NHL stats API endpoint.
-    // This endpoint is what powers the modern NHL.com/stats site.
-    const url = `https://api.nhle.com/stats/rest/en/skater/summary?isAggregate=false&isGame=false&sort=[{"property":"points","direction":"DESC"}]&start=0&limit=1000&factCayenneExp=gamesPlayed>=1&cayenneExp=seasonId=${seasonId}`;
+    // **FIX**: Removed the `&limit=1000` parameter from the URL.
+    // This should signal to the API to return all available players instead of a limited subset.
+    const url = `https://api.nhle.com/stats/rest/en/skater/summary?isAggregate=false&isGame=false&sort=[{"property":"points","direction":"DESC"}]&factCayenneExp=gamesPlayed>=1&cayenneExp=seasonId=${seasonId}`;
 
     try {
         console.log(`Fetching player stats from NEW NHL API URL: ${url}`);
