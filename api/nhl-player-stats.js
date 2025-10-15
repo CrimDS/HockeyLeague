@@ -2,38 +2,52 @@
 
 export default async function handler(req, res) {
     const { season } = req.query;
-    // Default to the most recent full season if none is provided.
     const seasonId = season || '20232024'; 
     
-    // **FIX**: Reverted to the more stable 'summary' endpoint, but incorporated 
-    // the `limit=-1` parameter to ensure all players are fetched.
-    const url = `https://api.nhle.com/stats/rest/en/skater/summary?isAggregate=false&isGame=false&sort=[{"property":"points","direction":"DESC"}]&limit=-1&cayenneExp=seasonId=${seasonId} and gameTypeId=2 and gamesPlayed>=1`;
+    // **FIX**: We will now fetch from three separate endpoints and merge the data.
+    const baseUrl = `https://api.nhle.com/stats/rest/en/skater`;
+    const commonParams = `isAggregate=false&isGame=false&limit=-1&cayenneExp=seasonId=${seasonId} and gameTypeId=2 and gamesPlayed>=1`;
+
+    const summaryUrl = `${baseUrl}/summary?sort=[{"property":"points","direction":"DESC"}]&${commonParams}`;
+    const hitsUrl = `${baseUrl}/hits?sort=[{"property":"hits","direction":"DESC"}]&${commonParams}`;
+    const blocksUrl = `${baseUrl}/blocks?sort=[{"property":"blocks","direction":"DESC"}]&${commonParams}`;
 
     try {
-        console.log(`Fetching player stats from SUMMARY NHL API URL: ${url}`);
-        const response = await fetch(url);
+        console.log(`Fetching data from multiple NHL endpoints for season ${seasonId}...`);
+        
+        const [summaryRes, hitsRes, blocksRes] = await Promise.all([
+            fetch(summaryUrl),
+            fetch(hitsUrl),
+            fetch(blocksUrl)
+        ]);
 
-        if (!response.ok) {
-            console.error(`NHL API responded with status: ${response.status}`);
-            throw new Error(`Failed to fetch player stats. Status: ${response.status}`);
+        if (!summaryRes.ok || !hitsRes.ok || !blocksRes.ok) {
+            console.error(`An API endpoint failed. Statuses: Summary=${summaryRes.status}, Hits=${hitsRes.status}, Blocks=${blocksRes.status}`);
+            throw new Error(`One or more NHL API endpoints failed to respond.`);
         }
+
+        const [summaryData, hitsData, blocksData] = await Promise.all([
+            summaryRes.json(),
+            hitsRes.json(),
+            blocksRes.json()
+        ]);
         
-        const data = await response.json();
-        
-        if (!data || !Array.isArray(data.data)) {
-            console.warn("NHL API did not return the expected data array. Response:", JSON.stringify(data));
+        if (!summaryData || !Array.isArray(summaryData.data)) {
+            console.warn("NHL Summary API did not return the expected data array.");
             res.status(200).json([]);
             return;
         }
 
-        const mappedStats = data.data.map(player => {
-            // **FIX**: Added safety checks for headshot URL construction.
+        // Use a map for efficient lookups and merging
+        const playerStats = new Map();
+
+        // Step 1: Populate the map with base stats from the summary endpoint.
+        summaryData.data.forEach(player => {
             let headshotUrl = 'https://placehold.co/100x100/111111/FFFFFF?text=?';
             if (player.teamAbbrevs && player.playerId) {
                 headshotUrl = `https://assets.nhle.com/mugs/nhl/latest/${player.teamAbbrevs}/${player.playerId}.png`;
             }
-            
-            return {
+            playerStats.set(player.playerId, {
                 id: player.playerId,
                 name: player.skaterFullName,
                 headshot: headshotUrl,
@@ -46,16 +60,35 @@ export default async function handler(req, res) {
                 plusMinus: player.plusMinus,
                 penaltyMinutes: String(player.penaltyMinutes),
                 shotsOnGoal: player.shots,
-                hits: player.hits ?? 0,
                 powerPlayGoals: player.ppGoals,
                 shortHandedGoals: player.shGoals,
-                // **FIX**: The 'summary' endpoint uses 'blocks', so we switch back to that.
-                blockedShots: player.blocks ?? 0,
-            };
+                hits: 0, // Default value
+                blockedShots: 0, // Default value
+            });
         });
 
-        console.log(`Processing complete. Found ${mappedStats.length} players.`);
-        res.status(200).json(mappedStats);
+        // Step 2: Merge in the hits data.
+        if (hitsData && Array.isArray(hitsData.data)) {
+            hitsData.data.forEach(player => {
+                if (playerStats.has(player.playerId)) {
+                    playerStats.get(player.playerId).hits = player.hits ?? 0;
+                }
+            });
+        }
+        
+        // Step 3: Merge in the blocked shots data.
+        if (blocksData && Array.isArray(blocksData.data)) {
+            blocksData.data.forEach(player => {
+                if (playerStats.has(player.playerId)) {
+                    playerStats.get(player.playerId).blockedShots = player.blocks ?? 0;
+                }
+            });
+        }
+
+        const mergedStats = Array.from(playerStats.values());
+        
+        console.log(`Processing complete. Found and merged stats for ${mergedStats.length} players.`);
+        res.status(200).json(mergedStats);
 
     } catch (error) {
         console.error("Critical error in nhl-player-stats function:", error.name, error.message);
