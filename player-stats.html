@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Player Stats - Fox & Hounds Hockey League</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #000000;
+        }
+        .card {
+            background-color: #111111;
+            border: 1px solid #333333;
+        }
+        .header-glow {
+            border-bottom: 1px solid #333333;
+        }
+        .form-input {
+            background-color: #222;
+            border: 1px solid #444;
+            color: white;
+            border-radius: 6px;
+            padding: 8px 12px;
+            width: 100%;
+        }
+        .stats-table th {
+            cursor: pointer;
+            position: relative;
+            padding-right: 20px;
+            transition: color 0.2s;
+        }
+        .stats-table th:hover { color: #FFD700; }
+        .stats-table th::after {
+            font-family: monospace;
+            opacity: 0.5;
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .stats-table th.sort-asc::after { content: '▲'; opacity: 1; color: #DC143C; }
+        .stats-table th.sort-desc::after { content: '▼'; opacity: 1; color: #DC143C; }
+        .player-headshot {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            background-color: #333;
+        }
+        .nav-link {
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: 500;
+            position: relative;
+            transition: color 0.2s;
+            color: #a0a0a0;
+        }
+        .nav-link.active {
+            color: #FFFFFF;
+            background-color: #222;
+        }
+        .nav-link:not(.active):hover {
+            color: #FFFFFF;
+        }
+        .admin-btn { background-color: transparent; border: 1px solid #FFD700; color: #FFD700; padding: 8px 16px; border-radius: 6px; font-weight: 600; }
+        .admin-btn:hover { background-color: rgba(255, 215, 0, 0.1); }
+    </style>
+</head>
+<body class="text-gray-300">
+
+    <div class="min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="bg-black/70 backdrop-blur-sm sticky top-0 z-10 header-glow">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between h-16">
+                    <div class="flex items-center space-x-3">
+                        <svg class="h-8 w-8 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">...</svg>
+                        <h1 class="text-2xl font-bold text-white">Fox & Hounds Hockey League</h1>
+                    </div>
+                    <nav class="flex items-center space-x-2">
+                        <a href="index.html" class="nav-link">League</a>
+                        <a href="player-stats.html" class="nav-link active">Player Stats</a>
+                    </nav>
+                    <div>
+                        <!-- The admin buttons exist for layout consistency but are non-functional on this page -->
+                         <button class="admin-btn invisible">Admin Login</button>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Main Content -->
+        <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10">
+            <!-- Player Stats Page -->
+            <div id="page-player-stats">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-semibold text-white">NHL Player Stats</h2>
+                    <div class="flex items-center space-x-4 w-full max-w-lg">
+                        <input type="text" id="stats-search" placeholder="Search by player name..." class="form-input flex-grow">
+                        <div>
+                            <label for="season-select" class="text-sm text-gray-400 mr-2 whitespace-nowrap">Season:</label>
+                            <select id="season-select" class="form-input bg-gray-900 border-gray-700"></select>
+                        </div>
+                    </div>
+                </div>
+                <div id="player-stats-container" class="card rounded-lg overflow-hidden">
+                    <!-- Stats table will be rendered here -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+<script>
+    let allPlayerStats = [];
+    let sortColumn = { key: 'points', order: 'desc' };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const seasonSelect = document.getElementById('season-select');
+        
+        populateSeasonSelector();
+        fetchAndRenderPlayerStats(seasonSelect.value);
+
+        document.getElementById('stats-search').addEventListener('input', () => renderPlayerStatsTable(allPlayerStats));
+        seasonSelect.addEventListener('change', () => fetchAndRenderPlayerStats(seasonSelect.value));
+    });
+
+    function populateSeasonSelector() {
+        const select = document.getElementById('season-select');
+        const currentYear = new Date().getFullYear();
+        const currentSeasonStartYear = new Date().getMonth() < 9 ? currentYear - 1 : currentYear;
+
+        for (let i = 0; i < 4; i++) {
+            const startYear = currentSeasonStartYear - i;
+            const seasonId = `${startYear}${startYear + 1}`;
+            const option = document.createElement('option');
+            option.value = seasonId;
+            option.textContent = `${startYear}-${startYear + 1}`;
+            if (i === 0) {
+                 option.selected = true;
+            }
+            select.appendChild(option);
+        }
+    }
+
+    async function fetchAndRenderPlayerStats(seasonId) {
+        const container = document.getElementById('player-stats-container');
+        container.innerHTML = `<div class="p-8 text-center text-gray-400">Loading player stats...</div>`;
+
+        try {
+            const response = await fetch(`/api/nhl-player-stats?season=${seasonId}`);
+            if (!response.ok) throw new Error('Network response was not ok');
+            
+            allPlayerStats = await response.json();
+            
+            if (allPlayerStats.length === 0) {
+                 container.innerHTML = `<div class="p-8 text-center text-gray-400">No player stats found for the ${seasonId.slice(0,4)}-${seasonId.slice(4)} season.</div>`;
+                 return;
+            }
+
+            renderPlayerStatsTable(allPlayerStats);
+        } catch (error) {
+            console.error('Failed to fetch player stats:', error);
+            container.innerHTML = `<div class="p-8 text-center text-red-400">Could not load player stats. Please try again later.</div>`;
+        }
+    }
+
+    function renderPlayerStatsTable(stats) {
+        const container = document.getElementById('player-stats-container');
+        const searchTerm = document.getElementById('stats-search').value.toLowerCase();
+        const filteredStats = stats.filter(p => p.name.toLowerCase().includes(searchTerm));
+        
+        filteredStats.sort((a, b) => {
+            const valA = a[sortColumn.key];
+            const valB = b[sortColumn.key];
+            const sortOrder = sortColumn.order === 'asc' ? 1 : -1;
+            if (valA < valB) return -1 * sortOrder;
+            if (valA > valB) return 1 * sortOrder;
+            return 0;
+        });
+
+        const headers = [
+            { key: 'name', label: 'Player' }, { key: 'team', label: 'Team' },
+            { key: 'position', label: 'Pos' }, { key: 'gamesPlayed', label: 'GP' },
+            { key: 'goals', label: 'G' }, { key: 'assists', label: 'A' },
+            { key: 'points', label: 'P' }, { key: 'plusMinus', label: '+/-' },
+            { key: 'penaltyMinutes', label: 'PIM' }, { key: 'shotsOnGoal', label: 'SOG' },
+            { key: 'hits', label: 'HITS' }, { key: 'powerPlayGoals', label: 'PPG' },
+            { key: 'shortHandedGoals', label: 'SHG' }, { key: 'blockedShots', label: 'BS' }
+        ];
+
+        const headerHtml = headers.map(h => {
+            let sortClass = '';
+            if (h.key === sortColumn.key) {
+                sortClass = sortColumn.order === 'asc' ? 'sort-asc' : 'sort-desc';
+            }
+            return `<th data-key="${h.key}" class="p-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider ${sortClass}">${h.label}</th>`;
+        }).join('');
+
+        const bodyHtml = filteredStats.map(p => `
+            <tr class="border-b border-gray-800 hover:bg-gray-800/50">
+                <td class="p-3 whitespace-nowrap">
+                    <div class="flex items-center">
+                        <img src="${p.headshot}" alt="${p.name}" class="player-headshot" onerror="this.src='https://placehold.co/40x40/333333/FFFFFF?text=${p.name.charAt(0)}'">
+                        <div class="ml-3">
+                            <div class="text-sm font-medium text-white">${p.name}</div>
+                        </div>
+                    </div>
+                </td>
+                <td class="p-3 text-sm text-gray-300">${p.team}</td>
+                <td class="p-3 text-sm text-gray-300">${p.position}</td>
+                <td class="p-3 text-sm text-gray-300">${p.gamesPlayed}</td>
+                <td class="p-3 text-sm text-gray-300">${p.goals}</td>
+                <td class="p-3 text-sm text-gray-300">${p.assists}</td>
+                <td class="p-3 text-sm text-white font-semibold">${p.points}</td>
+                <td class="p-3 text-sm text-gray-300">${p.plusMinus}</td>
+                <td class="p-3 text-sm text-gray-300">${p.penaltyMinutes}</td>
+                <td class="p-3 text-sm text-gray-300">${p.shotsOnGoal}</td>
+                <td class="p-3 text-sm text-gray-300">${p.hits}</td>
+                <td class="p-3 text-sm text-gray-300">${p.powerPlayGoals}</td>
+                <td class="p-3 text-sm text-gray-300">${p.shortHandedGoals}</td>
+                <td class="p-3 text-sm text-gray-300">${p.blockedShots}</td>
+            </tr>
+        `).join('');
+
+        container.innerHTML = `
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-800 stats-table">
+                    <thead class="bg-gray-900/50"><tr>${headerHtml}</tr></thead>
+                    <tbody class="divide-y divide-gray-800">${bodyHtml}</tbody>
+                </table>
+            </div>
+        `;
+        
+        container.querySelectorAll('th').forEach(th => {
+            th.addEventListener('click', () => {
+                const key = th.dataset.key;
+                if (sortColumn.key === key) {
+                    sortColumn.order = sortColumn.order === 'asc' ? 'desc' : 'asc';
+                } else {
+                    sortColumn.key = key;
+                    sortColumn.order = 'desc';
+                }
+                renderPlayerStatsTable(stats);
+            });
+        });
+    }
+</script>
+</body>
+</html>
