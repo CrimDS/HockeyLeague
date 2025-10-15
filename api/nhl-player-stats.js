@@ -81,8 +81,8 @@ export default async function handler(req, res) {
                 if (blocksData && Array.isArray(blocksData.data)) {
                      blocksData.data.forEach(player => {
                         if (playerStats.has(player.playerId)) {
-                            // **FIX**: Changed `player.blocks` to `player.blockedShots` to match the correct API property name.
-                            playerStats.get(player.playerId).blockedShots = player.blockedShots ?? 0;
+                            // **FIX**: The API provides this stat as `blocks`, not `blockedShots`. This corrects the mapping.
+                            playerStats.get(player.playerId).blockedShots = player.blocks ?? 0;
                         }
                     });
                 }
