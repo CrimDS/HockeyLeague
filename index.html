@@ -5,291 +5,366 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fox & Hounds Hockey League</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #111827; /* Dark background */
         }
-        /* Marquee-style scrolling animation for scoreboards */
-        @keyframes scroll {
+        
+        /* New styles for the scrolling animation */
+        @keyframes scrollLeft {
             0% { transform: translateX(0); }
             100% { transform: translateX(-50%); }
         }
+
         .scrolling-wrapper {
-            display: flex;
-            animation: scroll 60s linear infinite;
+            overflow: hidden;
+            width: 100%;
         }
-        .scoreboard-container:hover .scrolling-wrapper,
-        .news-ticker-container:hover .scrolling-wrapper {
+
+        #scoreboard-container {
+            display: flex;
+            width: fit-content; /* Let the container be as wide as its content */
+            animation: scrollLeft 60s linear infinite;
+            will-change: transform;
+            white-space: nowrap; /* Prevent items from wrapping */
+        }
+        
+        .scrolling-wrapper:hover #scoreboard-container {
             animation-play-state: paused;
         }
-        .scoreboard-card, .news-card {
-            flex-shrink: 0;
-        }
-        /* Custom scrollbar for player stats */
-        .player-stats-table::-webkit-scrollbar {
-            width: 8px;
-        }
-        .player-stats-table::-webkit-scrollbar-track {
-            background: #2d3748;
-        }
-        .player-stats-table::-webkit-scrollbar-thumb {
-            background-color: #4a5568;
-            border-radius: 4px;
-        }
+
+        /* Hide the original scrollbar */
+        #scoreboard-container::-webkit-scrollbar { display: none; }
+        #scoreboard-container { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
-<body class="text-gray-200">
+<body class="bg-gray-900 text-gray-200">
 
-    <!-- Header Section -->
-    <header class="bg-gray-900 shadow-lg">
-        <div class="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-            <div class="flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-yellow-400 mr-3" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M10 2a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 2zM5.05 5.05a.75.75 0 011.06 0l1.06 1.06a.75.75 0 01-1.06 1.06l-1.06-1.06a.75.75 0 010-1.06zM14.95 5.05a.75.75 0 011.06 1.06l-1.06 1.06a.75.75 0 01-1.06-1.06l1.06-1.06a.75.75 0 010-1.06zM10 18a.75.75 0 01.75-.75h1.5a.75.75 0 010 1.5h-1.5A.75.75 0 0110 18zM5.05 14.95a.75.75 0 011.06 0l1.06-1.06a.75.75 0 011.06 1.06l-1.06 1.06a.75.75 0 01-1.06 0zM16 10a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5a.75.75 0 01.75.75zM5 10a.75.75 0 01-.75.75H2.75a.75.75 0 010-1.5H4.25A.75.75 0 015 10zM10 5a5 5 0 100 10 5 5 0 000-10z" clip-rule="evenodd" />
-                    <path d="M12.25 7.75a.75.75 0 00-1.5 0v2.541l-1.29-1.29a.75.75 0 00-1.06 1.06l2.5 2.5a.75.75 0 001.06 0l2.5-2.5a.75.75 0 00-1.06-1.06L12.25 10.29V7.75z" />
-                </svg>
-                <h1 class="text-2xl font-bold text-white tracking-tight">Fox & Hounds Hockey League</h1>
+    <div class="min-h-screen flex flex-col">
+
+        <!-- Header -->
+        <header class="bg-gray-800/50 backdrop-blur-sm sticky top-0 z-10">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between h-16">
+                    <div class="flex items-center space-x-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M10 2a6 6 0 00-6 6v3.586l-1.707 1.707A1 1 0 003 15v1a1 1 0 001 1h12a1 1 0 001-1v-1a1 1 0 00-.293-.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
+                        </svg>
+                        <h1 class="text-2xl font-bold text-white">Fox & Hounds Hockey League</h1>
+                    </div>
+                </div>
             </div>
-            <!-- Navigation can go here later -->
-        </div>
-    </header>
-
-    <!-- Main Content -->
-    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-
-        <!-- Scoreboard Ticker -->
-        <div id="scoreboard-outline" class="border border-gray-700 rounded-lg p-2 mb-6">
-            <div id="scoreboard-container" class="relative overflow-hidden bg-gray-800 rounded-md shadow-inner p-2 h-24 flex items-center">
-                <!-- Live Scores will be injected here -->
-                <div class="absolute top-0 left-0 h-full w-max flex scrolling-wrapper">
-                    <!-- Cloned content for seamless loop -->
+        </header>
+        
+        <!-- Live NHL Scoreboard Section -->
+        <div class="py-4">
+            <div class="max-w-7xl mx-auto border border-gray-700 rounded-lg overflow-hidden">
+                <div class="scrolling-wrapper p-2">
+                    <div id="scoreboard-container" class="flex space-x-4">
+                        <!-- Scores will be dynamically injected here -->
+                        <div class="flex items-center justify-center w-full h-24 text-gray-400">Loading live scores...</div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- News Ticker -->
-        <div id="news-ticker-container" class="relative overflow-hidden bg-gray-800 rounded-md shadow-inner p-2 h-12 flex items-center">
-            <!-- News items will be injected here -->
-             <div class="absolute top-0 left-0 h-full w-max flex scrolling-wrapper">
-                <!-- Cloned content for seamless loop -->
-            </div>
-        </div>
-
-
-        <!-- Rest of the page content -->
-        <div class="px-4 py-6 sm:px-0">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Main Content -->
+        <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 
-                <!-- Standings Card -->
-                <div class="bg-gray-800 rounded-lg shadow p-6">
-                    <h2 class="text-xl font-semibold mb-4 text-white">League Standings</h2>
-                    <!-- Standings content will go here -->
-                </div>
-
-                <!-- Matchups Card -->
-                <div class="bg-gray-800 rounded-lg shadow p-6 md:col-span-2">
-                    <h2 class="text-xl font-semibold mb-4 text-white">Weekly Matchups</h2>
-                    <!-- Matchups content will go here -->
-                </div>
-
-            </div>
-        </div>
-    </main>
-
-    <!-- Game Stats Modal -->
-    <div id="stats-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4">
-        <div id="stats-modal-content" class="bg-gray-800 rounded-lg shadow-2xl p-6 border border-gray-600 w-full max-w-2xl">
-            <p id="modal-loading-message" class="text-center text-lg">Loading Game Stats...</p>
-            <div id="modal-stats-container" class="hidden">
-                 <!-- Team stats will be injected here -->
-            </div>
-        </div>
-    </div>
-
-
-    <script>
-        const scoreboardContainer = document.querySelector('#scoreboard-container .scrolling-wrapper');
-        const newsTickerContainer = document.querySelector('#news-ticker-container .scrolling-wrapper');
-        const statsModal = document.getElementById('stats-modal');
-        const statsModalContent = document.getElementById('stats-modal-content');
-
-        // --- SCOREBOARD LOGIC ---
-
-        const fetchScores = async () => {
-            try {
-                const response = await fetch('/api/nhl-scores');
-                if (!response.ok) throw new Error('Network response was not ok');
-                const scores = await response.json();
-                renderScores(scores.events);
-            } catch (error) {
-                console.error("Failed to fetch scores:", error);
-                scoreboardContainer.innerHTML = `<p class="text-red-400 p-4">Could not load live scores.</p>`;
-            }
-        };
-
-        const renderScores = (events) => {
-            if (!events || events.length === 0) {
-                scoreboardContainer.innerHTML = `<p class="p-4">No NHL games scheduled for today.</p>`;
-                return;
-            }
-
-            const gamesHtml = events.map(game => {
-                const competition = game.competitions[0];
-                const homeTeam = competition.competitors.find(c => c.homeAway === 'home');
-                const awayTeam = competition.competitors.find(c => c.homeAway === 'away');
-                const status = game.status.type.detail;
-
-                return `
-                    <div class="scoreboard-card bg-gray-900 rounded-lg shadow-md p-3 mx-2 w-64 text-sm border border-gray-700 flex flex-col justify-between" data-game-id="${game.id}">
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="font-semibold text-gray-400">${status}</span>
-                        </div>
-                        <div class="space-y-1">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center">
-                                    <img src="${awayTeam.team.logo}" alt="${awayTeam.team.displayName}" class="w-6 h-6 mr-2">
-                                    <span class="font-medium">${awayTeam.team.displayName}</span>
+                <!-- Matchups Column -->
+                <div class="lg:col-span-2 space-y-6">
+                    <h2 class="text-2xl font-semibold text-white">Weekly Matchups</h2>
+                    <!-- Matchup Card 1 -->
+                    <div class="bg-gray-800 rounded-lg shadow-lg p-6">
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center space-x-4">
+                                <img class="h-12 w-12 rounded-full" src="https://placehold.co/100x100/1F2937/FFFFFF?text=P" alt="Puck Hogs logo">
+                                <div>
+                                    <p class="font-bold text-lg">Puck Hogs</p>
+                                    <p class="text-sm text-gray-400">8-2-0</p>
                                 </div>
-                                <span class="font-bold text-lg">${awayTeam.score || 0}</span>
                             </div>
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center">
-                                    <img src="${homeTeam.team.logo}" alt="${homeTeam.team.displayName}" class="w-6 h-6 mr-2">
-                                    <span class="font-medium">${homeTeam.team.displayName}</span>
+                            <div class="text-center">
+                                <p class="text-3xl font-bold">125.7</p>
+                                <p class="text-sm text-gray-400">vs</p>
+                                <p class="text-3xl font-bold">98.2</p>
+                            </div>
+                            <div class="flex items-center space-x-4">
+                                <div>
+                                    <p class="font-bold text-lg text-right">The Great Ones</p>
+                                    <p class="text-sm text-gray-400 text-right">6-4-0</p>
                                 </div>
-                                <span class="font-bold text-lg">${homeTeam.score || 0}</span>
+                                <img class="h-12 w-12 rounded-full" src="https://placehold.co/100x100/7C3AED/FFFFFF?text=G" alt="The Great Ones logo">
                             </div>
                         </div>
                     </div>
-                `;
-            }).join('');
+                    <!-- More matchup cards... -->
+                </div>
 
-            scoreboardContainer.innerHTML = gamesHtml;
-            // Clone content for seamless scrolling effect if there's enough content
-            if (events.length > 3) {
-                scoreboardContainer.innerHTML += gamesHtml;
-            }
-        };
+                <!-- Standings Column -->
+                <div class="space-y-6">
+                    <h2 class="text-2xl font-semibold text-white">League Standings</h2>
+                    <div class="bg-gray-800 rounded-lg shadow-lg p-4">
+                        <ul class="divide-y divide-gray-700">
+                           <li class="py-3 flex justify-between items-center">
+                               <div class="flex items-center">
+                                   <span class="text-gray-400 w-6 text-center">1</span>
+                                   <p class="ml-3 font-medium">Puck Hogs</p>
+                               </div>
+                               <p class="text-gray-400">8-2-0</p>
+                           </li>
+                           <li class="py-3 flex justify-between items-center">
+                               <div class="flex items-center">
+                                   <span class="text-gray-400 w-6 text-center">2</span>
+                                   <p class="ml-3 font-medium">The Great Ones</p>
+                               </div>
+                               <p class="text-gray-400">6-4-0</p>
+                           </li>
+                           <!-- More teams... -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
 
+    <!-- New Game Stats Modal -->
+    <div id="game-stats-modal" class="hidden absolute z-20 w-[32rem] bg-gray-900 border border-gray-700 rounded-lg shadow-xl p-4 transition-opacity duration-300">
+        <!-- Modal content will be injected here -->
+        <p>Loading game stats...</p>
+    </div>
 
-        // --- NEWS TICKER LOGIC ---
+    <script>
+        const scoreboardContainer = document.getElementById('scoreboard-container');
+        const statsModal = document.getElementById('game-stats-modal');
+        let allScoresData = []; // Store score data globally
+        let modalTimeout; // To handle hover delays
 
-        const fetchNews = async () => {
+        async function fetchScores() {
             try {
-                const response = await fetch('/api/nhl-news');
-                if (!response.ok) throw new Error('Failed to fetch news');
-                const news = await response.json();
-                renderNews(news);
-            } catch (error) {
-                console.error("Failed to fetch news:", error);
-                newsTickerContainer.innerHTML = `<p class="text-red-400 px-4">Could not load news.</p>`;
-            }
-        };
+                const response = await fetch('/api/nhl-scores');
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                
+                const data = await response.json();
+                allScoresData = data.scores; // Store for later use
+                renderScores(allScoresData);
 
-        const renderNews = (newsItems) => {
-            if (!newsItems || newsItems.length === 0) {
-                newsTickerContainer.innerHTML = `<p class="px-4 text-gray-400">No recent news found for today.</p>`;
+            } catch (error) {
+                console.error("Failed to fetch scores:", error);
+                scoreboardContainer.innerHTML = `<div class="flex items-center justify-center w-full h-24 text-red-400">Failed to load live scores.</div>`;
+            }
+        }
+
+        function renderScores(scores) {
+            scoreboardContainer.innerHTML = ''; // Clear previous scores
+
+            if (!scores || scores.length === 0) {
+                scoreboardContainer.innerHTML = `<div class="flex items-center justify-center w-full h-24 text-gray-400">No NHL games scheduled for today.</div>`;
                 return;
             }
-            const newsHtml = newsItems.map(item => `
-                <div class="news-card flex items-center mx-4">
-                    <span class="font-semibold text-sky-400 mr-2">NHL News:</span>
-                    <a href="${item.link}" target="_blank" rel="noopener noreferrer" class="hover:underline text-gray-200">
-                        ${item.title}
-                    </a>
-                </div>
-            `).join('');
 
-            newsTickerContainer.innerHTML = newsHtml;
-             if (newsItems.length > 2) {
-                newsTickerContainer.innerHTML += newsHtml;
+            scores.forEach(game => {
+                const gameElement = createGameElement(game);
+                scoreboardContainer.appendChild(gameElement);
+            });
+            
+            // Duplicate content for seamless scrolling
+            if (scores.length > 0) {
+                 setupSeamlessScrolling();
             }
-        };
+        }
 
+        function createGameElement(game) {
+            const gameElement = document.createElement('div');
+            gameElement.className = 'flex-shrink-0 bg-gray-800 rounded-lg p-3 w-64 h-24 flex flex-col justify-between cursor-pointer';
+            gameElement.dataset.gameId = game.id; // Store game ID for stat fetching
+            
+            const gameStatus = game.isCompleted ? 'Final' : game.status;
+            
+            let timeDisplay = gameStatus;
+            if (!game.isCompleted && (game.status === 'Scheduled' || game.status.includes('TBA'))) {
+                const gameTime = new Date(game.time);
+                timeDisplay = gameTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+            }
 
-        // --- GAME STATS MODAL LOGIC ---
+            gameElement.innerHTML = `
+                <div class="flex justify-between items-center text-xs text-gray-400">
+                    <span>${timeDisplay}</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-2 w-full">
+                        <img src="${game.awayLogo}" alt="${game.awayTeam}" class="h-6 w-6" onerror="this.src='https://placehold.co/24x24/374151/FFFFFF?text=?'; this.onerror=null;">
+                        <span class="truncate text-sm font-medium">${game.awayTeam}</span>
+                    </div>
+                    <span class="text-lg font-bold">${game.awayScore !== null ? game.awayScore : ''}</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-2 w-full">
+                        <img src="${game.homeLogo}" alt="${game.homeTeam}" class="h-6 w-6" onerror="this.src='https://placehold.co/24x24/374151/FFFFFF?text=?'; this.onerror=null;">
+                        <span class="truncate text-sm font-medium">${game.homeTeam}</span>
+                    </div>
+                    <span class="text-lg font-bold">${game.homeScore !== null ? game.homeScore : ''}</span>
+                </div>
+            `;
+            
+            // Add hover event listeners for the modal
+            gameElement.addEventListener('mouseenter', (event) => showStatsModal(event, game.id));
+            gameElement.addEventListener('mouseleave', hideStatsModal);
+            
+            return gameElement;
+        }
+        
+        function setupSeamlessScrolling() {
+            // Get all original items
+            const originalItems = Array.from(scoreboardContainer.children);
+            // Clone and append each item
+            originalItems.forEach(item => {
+                const clone = item.cloneNode(true);
+                // We need to re-add event listeners to clones
+                clone.addEventListener('mouseenter', (event) => showStatsModal(event, clone.dataset.gameId));
+                clone.addEventListener('mouseleave', hideStatsModal);
+                scoreboardContainer.appendChild(clone);
+            });
+        }
 
-        const showGameStats = async (gameId) => {
+        async function showStatsModal(event, gameId) {
+            clearTimeout(modalTimeout); // Stop the modal from hiding if we move to a new item
+            const gameData = allScoresData.find(g => g.id === gameId);
+            if (!gameData) return;
+
+            statsModal.innerHTML = `<p class="text-center text-gray-400">Loading game stats...</p>`;
+            
+            const targetRect = event.currentTarget.getBoundingClientRect();
+            statsModal.style.left = `${targetRect.left}px`;
+            statsModal.style.top = `${targetRect.bottom + window.scrollY + 10}px`;
             statsModal.classList.remove('hidden');
-            document.getElementById('modal-loading-message').classList.remove('hidden');
-            document.getElementById('modal-stats-container').classList.add('hidden');
 
             try {
+                // Fetch detailed stats from our new endpoint
                 const response = await fetch(`/api/nhl-game-stats?id=${gameId}`);
-                const data = await response.json();
+                if (!response.ok) throw new Error('Failed to load stats');
+                const stats = await response.json();
 
-                if (response.status === 404) {
-                    throw new Error(data.error || 'Stats are not yet available.');
-                }
-                if (!response.ok) {
-                    throw new Error(data.error || 'Could not load game stats.');
+                const teamStats = stats.teamStats;
+                const playerStats = stats.individualPlayerStats;
+
+                const renderPlayerTable = (players, teamName) => {
+                    if (!players || players.length === 0) {
+                        return `<p class="text-xs text-gray-500 mt-2 px-1">No significant player stats for ${teamName}.</p>`;
+                    }
+                    return `
+                        <h5 class="font-semibold text-sm mt-3 mb-1 px-1">${teamName}</h5>
+                        <table class="w-full text-xs text-left">
+                            <thead class="text-gray-400">
+                                <tr>
+                                    <th class="font-medium p-1">Player</th>
+                                    <th class="font-medium p-1 text-center">G</th>
+                                    <th class="font-medium p-1 text-center">A</th>
+                                    <th class="font-medium p-1 text-center">SOG</th>
+                                    <th class="font-medium p-1 text-center">HITS</th>
+                                    <th class="font-medium p-1 text-center">BS</th>
+                                    <th class="font-medium p-1 text-center">PIM</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-800">
+                                ${players.map(p => `
+                                    <tr>
+                                        <td class="p-1 font-medium">${p.name} <span class="text-gray-500">${p.position}</span></td>
+                                        <td class="p-1 text-center">${p.G}</td>
+                                        <td class="p-1 text-center">${p.A}</td>
+                                        <td class="p-1 text-center">${p.SOG}</td>
+                                        <td class="p-1 text-center">${p.HITS}</td>
+                                        <td class="p-1 text-center">${p.BS}</td>
+                                        <td class="p-1 text-center">${p.PIM}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    `;
+                };
+
+                const hasAwayPlayers = playerStats && playerStats.away && playerStats.away.length > 0;
+                const hasHomePlayers = playerStats && playerStats.home && playerStats.home.length > 0;
+                let individualStatsHTML;
+
+                if (!hasAwayPlayers && !hasHomePlayers) {
+                    if (gameData.isCompleted) {
+                         individualStatsHTML = `<p class="text-center text-sm text-gray-500 py-4">Detailed player stats are not available for this game.</p>`;
+                    } else {
+                         individualStatsHTML = `<p class="text-center text-sm text-gray-500 py-4">Player stats will appear after the game starts.</p>`;
+                    }
+                } else {
+                    individualStatsHTML = `
+                        <div class="max-h-52 overflow-y-auto">
+                            ${renderPlayerTable(playerStats.away, gameData.awayTeam)}
+                            ${renderPlayerTable(playerStats.home, gameData.homeTeam)}
+                        </div>
+                    `;
                 }
 
-                renderStats(data);
+                // Build the detailed stats HTML
+                const modalContent = `
+                    <div class="flex justify-between items-center pb-2 border-b border-gray-700 mb-3">
+                        <h3 class="font-bold text-base">${gameData.awayTeam} @ ${gameData.homeTeam}</h3>
+                        <span class="text-xs px-2 py-1 bg-gray-700 rounded">${gameData.status}</span>
+                    </div>
+                    
+                    <div>
+                        <h4 class="font-semibold text-xs text-gray-400 uppercase mb-2">Team Stats</h4>
+                         <div class="grid grid-cols-3 gap-y-3 gap-x-4 text-sm text-center">
+                            <div>
+                                <p class="text-gray-400 text-xs">SHOTS</p>
+                                <p class="font-bold text-base">${teamStats.shotsOnGoal.away} - ${teamStats.shotsOnGoal.home}</p>
+                            </div>
+                            <div>
+                                <p class="text-gray-400 text-xs">HITS</p>
+                                <p class="font-bold text-base">${teamStats.hits.away} - ${teamStats.hits.home}</p>
+                            </div>
+                            <div>
+                                <p class="text-gray-400 text-xs">BLOCKS</p>
+                                <p class="font-bold text-base">${teamStats.blockedShots.away} - ${teamStats.blockedShots.home}</p>
+                            </div>
+                            <div>
+                                <p class="text-gray-400 text-xs">PIM</p>
+                                <p class="font-bold text-base">${teamStats.penaltyMinutes.away} - ${teamStats.penaltyMinutes.home}</p>
+                            </div>
+                            <div class="col-span-2">
+                                <p class="text-gray-400 text-xs">POWER PLAYS</p>
+                                <p class="font-bold text-base">${teamStats.powerPlays.away} - ${teamStats.powerPlays.home}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border-t border-gray-700 mt-4 pt-3">
+                         <h4 class="font-semibold text-xs text-gray-400 uppercase mb-1">Individual Stats</h4>
+                         ${individualStatsHTML}
+                    </div>
+                `;
+                statsModal.innerHTML = modalContent;
 
             } catch (error) {
-                 document.getElementById('modal-loading-message').innerText = error.message;
+                console.error("Error fetching game stats:", error);
+                statsModal.innerHTML = `<p class="text-center text-red-400">Could not load game stats.</p>`;
             }
-        };
+        }
 
-        const renderStats = ({ teamStats }) => {
-            const statsContainer = document.getElementById('modal-stats-container');
-            
-            const statsHtml = `
-                <h3 class="text-xl font-bold mb-4 text-center text-white">Team Stats</h3>
-                <div class="grid grid-cols-3 gap-x-4 gap-y-2 text-center text-gray-300">
-                    <div class="font-semibold">Stat</div>
-                    <div class="font-semibold">Away</div>
-                    <div class="font-semibold">Home</div>
-
-                    ${createStatRow('Shots', teamStats.shotsOnGoal.away, teamStats.shotsOnGoal.home)}
-                    ${createStatRow('Hits', teamStats.hits.away, teamStats.hits.home)}
-                    ${createStatRow('Blocks', teamStats.blockedShots.away, teamStats.blockedShots.home)}
-                    ${createStatRow('PIMs', teamStats.penaltyMinutes.away, teamStats.penaltyMinutes.home)}
-                    ${createStatRow('Power Play', teamStats.powerPlays.away, teamStats.powerPlays.home)}
-                </div>
-            `;
-            
-            statsContainer.innerHTML = statsHtml;
-            document.getElementById('modal-loading-message').classList.add('hidden');
-            statsContainer.classList.remove('hidden');
-        };
-
-        const createStatRow = (label, awayStat, homeStat) => {
-             const awayIsGreater = parseInt(awayStat) > parseInt(homeStat);
-             const homeIsGreater = parseInt(homeStat) > parseInt(awayStat);
-             return `
-                <div class="bg-gray-700 p-2 rounded-l-md">${label}</div>
-                <div class="bg-gray-700 p-2 ${awayIsGreater ? 'text-green-400 font-bold' : ''}">${awayStat}</div>
-                <div class="bg-gray-700 p-2 rounded-r-md ${homeIsGreater ? 'text-green-400 font-bold' : ''}">${homeStat}</div>
-            `;
-        };
-
-        // Event listener for hovering over scoreboard cards
-        scoreboardContainer.addEventListener('mouseover', (e) => {
-            const card = e.target.closest('.scoreboard-card');
-            if (card) {
-                const gameId = card.dataset.gameId;
-                showGameStats(gameId);
-            }
-        });
-        
-        // Hide modal when clicking outside of the content
-        statsModal.addEventListener('click', (e) => {
-            if (e.target === statsModal) {
+        function hideStatsModal() {
+            modalTimeout = setTimeout(() => {
                 statsModal.classList.add('hidden');
-            }
-        });
+            }, 100);
+        }
         
-        // Initial data fetch and refresh intervals
-        fetchScores();
-        fetchNews();
-        setInterval(fetchScores, 15000); // Refresh scores every 15 seconds
-        setInterval(fetchNews, 300000); // Refresh news every 5 minutes
+        // Add listeners to the modal itself so it stays open when you move your mouse into it
+        statsModal.addEventListener('mouseenter', () => clearTimeout(modalTimeout));
+        statsModal.addEventListener('mouseleave', hideStatsModal);
 
+        // Initial fetch and setup refresh interval
+        fetchScores();
+        setInterval(fetchScores, 15000);
     </script>
+
 </body>
 </html>
 
