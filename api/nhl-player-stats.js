@@ -5,16 +5,16 @@ export default async function handler(req, res) {
     // Default to the most recent full season if none is provided.
     const seasonId = season || '20232024'; 
     
-    // **FIX**: Removed the `&limit=1000` parameter from the URL.
-    // This should signal to the API to return all available players instead of a limited subset.
-    const url = `https://api.nhle.com/stats/rest/en/skater/summary?isAggregate=false&isGame=false&sort=[{"property":"points","direction":"DESC"}]&factCayenneExp=gamesPlayed>=1&cayenneExp=seasonId=${seasonId}`;
+    // **FIX**: Switched to the `realtime` endpoint and added `limit=-1` to fetch all players.
+    // Also added `gameTypeId=2` to ensure we only get regular season stats.
+    const url = `https://api.nhle.com/stats/rest/en/skater/realtime?isAggregate=false&isGame=false&sort=[{"property":"points","direction":"DESC"}]&limit=-1&cayenneExp=seasonId=${seasonId} and gameTypeId=2 and gamesPlayed>=1`;
 
     try {
-        console.log(`Fetching player stats from NEW NHL API URL: ${url}`);
+        console.log(`Fetching player stats from REALTIME NHL API URL: ${url}`);
         const response = await fetch(url);
 
         if (!response.ok) {
-            console.error(`New NHL API responded with status: ${response.status}`);
+            console.error(`NHL API responded with status: ${response.status}`);
             throw new Error(`Failed to fetch player stats. Status: ${response.status}`);
         }
         
@@ -37,7 +37,7 @@ export default async function handler(req, res) {
             hits: player.hits ?? 0, // Fallback to 0 if undefined
             powerPlayGoals: player.ppGoals,
             shortHandedGoals: player.shGoals,
-            blockedShots: player.blocks ?? 0, // Fallback to 0 if undefined
+            blockedShots: player.blockedShots ?? 0, // Switched to blockedShots from blocks for this endpoint
         }));
 
         console.log(`Processing complete. Found ${mappedStats.length} players.`);
