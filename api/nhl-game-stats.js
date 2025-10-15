@@ -78,7 +78,11 @@ export default async function handler(request) {
     const parsePlayerStats = (players) => {
       if (!players) return [];
       return players
-        .filter(p => p.stats && p.stats.length > 0 && p.position.abbreviation !== 'G') // Safely check for p.stats
+        .filter(p => 
+          p.stats && p.stats.length > 0 && // Player must have stats
+          p.position && p.position.abbreviation !== 'G' && // Player must have a position and not be a Goalie
+          p.athlete // Player must have athlete data (for the name)
+        )
         .map(p => ({
           name: p.athlete.displayName,
           position: p.position.abbreviation,
