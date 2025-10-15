@@ -28,6 +28,12 @@ export default async function handler(req, res) {
             const statName = category.shortDisplayName; // e.g., "G", "A", "+/-"
             
             category.leaders.forEach(playerEntry => {
+                // **FIX:** Add a defensive check to ensure the entry has an athlete object.
+                // Sometimes the API returns entries that are not players.
+                if (!playerEntry.athlete) {
+                    return; // Skip this entry if it's not a valid player.
+                }
+
                 const player = playerEntry.athlete;
                 const playerId = player.id;
 
@@ -96,3 +102,4 @@ export default async function handler(req, res) {
         res.status(500).json({ error: "Could not fetch player statistics.", details: error.message });
     }
 }
+
