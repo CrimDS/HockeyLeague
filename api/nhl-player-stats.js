@@ -48,13 +48,14 @@ export default async function handler(req, res) {
                 plusMinus: player.plusMinus,
                 penaltyMinutes: String(player.penaltyMinutes),
                 powerPlayGoals: player.ppGoals,
-                blockedShots: player.blockedShots,
-                hits: player.hits,
+                // **FIX**: Initialize Hits and Blocked Shots to 0.
+                // The summary endpoint doesn't contain these, so they would otherwise be undefined.
+                hits: 0,
+                blockedShots: 0,
             });
         });
 
-        // **FIX**: Fetch optional stats individually and handle failures gracefully.
-        // This prevents the entire function from crashing if one endpoint is empty/errors out.
+        // Fetch optional stats individually and handle failures gracefully.
         try {
             console.log("Fetching optional hits data...");
             const hitsRes = await fetch(hitsUrl);
