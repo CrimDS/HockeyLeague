@@ -16,7 +16,7 @@
             border: 1px solid #333333; /* Dark gray border */
             transition: all 0.2s ease-in-out;
         }
-        .card:hover {
+        .card:hover:not(.no-hover) {
             border-color: #FFD700; /* Gold */
             transform: translateY(-4px);
             box-shadow: 0 8px 24px rgba(255, 215, 0, 0.15); /* Gold shadow */
@@ -52,9 +52,101 @@
             font-weight: 600;
             color: #DC143C; /* Crimson */
         }
+        /* Editor Styles */
+        .modal-backdrop {
+            background-color: rgba(0,0,0,0.7);
+        }
+        .admin-btn, .btn-primary, .btn-secondary {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .admin-btn {
+            background-color: transparent;
+            border: 1px solid #FFD700;
+            color: #FFD700;
+        }
+        .admin-btn:hover {
+            background-color: rgba(255, 215, 0, 0.1);
+        }
+        .btn-primary {
+            background-color: #DC143C;
+            color: white;
+            border: 1px solid #DC143C;
+        }
+        .btn-primary:hover {
+            background-color: #b81030;
+        }
+        .btn-secondary {
+            background-color: #333;
+            color: white;
+            border: 1px solid #333;
+        }
+        .btn-secondary:hover {
+            background-color: #444;
+        }
+        .form-input {
+            background-color: #222;
+            border: 1px solid #444;
+            color: white;
+            border-radius: 6px;
+            padding: 8px 12px;
+            width: 100%;
+        }
+        .admin-controls {
+            display: none;
+        }
+        body.admin-mode .admin-controls {
+            display: flex;
+        }
     </style>
 </head>
 <body class="text-gray-300">
+
+    <!-- Admin Login Modal -->
+    <div id="admin-login-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop">
+        <div class="card no-hover p-8 rounded-lg w-full max-w-sm">
+            <h2 class="text-2xl font-bold text-white mb-4">Admin Login</h2>
+            <p id="login-error" class="text-red-500 text-sm mb-4 hidden">Invalid password.</p>
+            <form id="login-form">
+                <input id="password-input" type="password" class="form-input mb-4" placeholder="Enter password...">
+                <div class="flex justify-end space-x-4">
+                    <button type="button" onclick="toggleLoginModal(false)" class="btn-secondary">Cancel</button>
+                    <button type="submit" class="btn-primary">Login</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Matchup Modal -->
+    <div id="edit-matchup-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop">
+        <div class="card no-hover p-8 rounded-lg w-full max-w-lg">
+            <h2 class="text-2xl font-bold text-white mb-6">Edit Matchup</h2>
+            <form id="edit-matchup-form">
+                <input type="hidden" id="edit-matchup-id">
+                <div class="grid grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-400 mb-1">Team 1</label>
+                        <select id="edit-team1-id" class="form-input"></select>
+                        <label class="block text-sm font-medium text-gray-400 mt-4 mb-1">Team 1 Score</label>
+                        <input id="edit-team1-score" type="number" step="0.1" class="form-input" placeholder="Score">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-400 mb-1">Team 2</label>
+                        <select id="edit-team2-id" class="form-input"></select>
+                        <label class="block text-sm font-medium text-gray-400 mt-4 mb-1">Team 2 Score</label>
+                        <input id="edit-team2-score" type="number" step="0.1" class="form-input" placeholder="Score">
+                    </div>
+                </div>
+                 <div class="flex justify-end space-x-4 mt-8">
+                    <button type="button" onclick="toggleEditMatchupModal(false)" class="btn-secondary">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <div class="min-h-screen flex flex-col">
 
@@ -64,9 +156,13 @@
                 <div class="flex items-center justify-between h-16">
                     <div class="flex items-center space-x-3">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM5.5 9.5a.5.5 0 01.5-.5h2a.5.5 0 01.5.5v2a.5.5 0 01-.5.5h-2a.5.5 0 01-.5-.5v-2zM12 5.5a.5.5 0 00-.5.5v2a.5.5 0 00.5.5h2a.5.5 0 00.5-.5v-2a.5.5 0 00-.5-.5h-2zM6 12a.5.5 0 00-.5.5v2a.5.5 0 00.5.5h2a.5.5 0 00.5-.5v-2a.5.5 0 00-.5-.5H6zM11.5 12a.5.5 0 01.5-.5h2a.5.5 0 01.5.5v2a.5.5 0 01-.5.5h-2a.5.5 0 01-.5-.5v-2z" clip-rule="evenodd" />
+                           <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM5.5 9.5a.5.5 0 01.5-.5h2a.5.5 0 01.5.5v2a.5.5 0 01-.5.5h-2a.5.5 0 01-.5-.5v-2zM12 5.5a.5.5 0 00-.5.5v2a.5.5 0 00.5.5h2a.5.5 0 00.5-.5v-2a.5.5 0 00-.5-.5h-2zM6 12a.5.5 0 00-.5.5v2a.5.5 0 00.5.5h2a.5.5 0 00.5-.5v-2a.5.5 0 00-.5-.5H6zM11.5 12a.5.5 0 01.5-.5h2a.5.5 0 01.5.5v2a.5.5 0 01-.5.5h-2a.5.5 0 01-.5-.5v-2z" clip-rule="evenodd" />
                         </svg>
                         <h1 class="text-2xl font-bold text-white">Fox & Hounds Hockey League</h1>
+                    </div>
+                    <div>
+                         <button id="admin-login-btn" onclick="toggleLoginModal(true)" class="admin-btn">Admin Login</button>
+                         <button id="admin-logout-btn" onclick="logout()" class="admin-btn hidden">Logout</button>
                     </div>
                 </div>
             </div>
@@ -78,57 +174,26 @@
                 
                 <!-- Matchups Column -->
                 <div class="lg:col-span-2 space-y-6">
-                    <h2 class="text-2xl font-semibold text-white px-2">Weekly Matchups</h2>
-                    <!-- Matchup Card 1 -->
-                    <div class="card rounded-lg p-6">
-                        <div class="flex justify-between items-center">
-                            <!-- Team 1 -->
-                            <div class="flex flex-col items-center text-center w-1/3">
-                                <img class="team-logo" src="https://placehold.co/100x100/FFD700/000000?text=P" alt="Puck Hogs logo">
-                                <p class="font-bold text-lg mt-2">Puck Hogs</p>
-                                <p class="text-sm text-gray-400">8-2-0</p>
-                            </div>
-
-                            <!-- Scores -->
-                            <div class="flex items-center justify-center flex-grow">
-                                <p class="score">125.7</p>
-                                <div class="vs-circle mx-6">VS</div>
-                                <p class="score">98.2</p>
-                            </div>
-
-                            <!-- Team 2 -->
-                            <div class="flex flex-col items-center text-center w-1/3">
-                                <img class="team-logo" src="https://placehold.co/100x100/DC143C/FFFFFF?text=G" alt="The Great Ones logo">
-                                <p class="font-bold text-lg mt-2">The Great Ones</p>
-                                <p class="text-sm text-gray-400">6-4-0</p>
-                            </div>
+                    <div class="flex justify-between items-center px-2">
+                        <h2 class="text-2xl font-semibold text-white">Weekly Matchups</h2>
+                        <div class="admin-controls">
+                            <button onclick="addMatchup()" class="admin-btn text-sm">+ Add Matchup</button>
                         </div>
                     </div>
-                    <!-- More matchup cards... -->
+                    <div id="matchups-container" class="space-y-6">
+                        <!-- Matchups will be dynamically inserted here -->
+                    </div>
                 </div>
 
                 <!-- Standings Column -->
                 <div class="space-y-6">
-                    <h2 class="text-2xl font-semibold text-white px-2">League Standings</h2>
+                     <div class="flex justify-between items-center px-2">
+                        <h2 class="text-2xl font-semibold text-white">League Standings</h2>
+                        <!-- Future admin controls for standings can go here -->
+                    </div>
                     <div class="card rounded-lg p-4">
-                        <ul class="divide-y divide-gray-800">
-                           <li class="py-3 flex justify-between items-center">
-                               <div class="flex items-center">
-                                   <span class="rank-number w-6 text-center">1</span>
-                                   <img class="team-logo w-8 h-8 ml-3" src="https://placehold.co/100x100/FFD700/000000?text=P" alt="Puck Hogs logo">
-                                   <p class="ml-3 font-medium text-white">Puck Hogs</p>
-                               </div>
-                               <p class="text-gray-400 font-mono text-sm">8-2-0</p>
-                           </li>
-                           <li class="py-3 flex justify-between items-center">
-                               <div class="flex items-center">
-                                   <span class="rank-number w-6 text-center">2</span>
-                                   <img class="team-logo w-8 h-8 ml-3" src="https://placehold.co/100x100/DC143C/FFFFFF?text=G" alt="The Great Ones logo">
-                                   <p class="ml-3 font-medium text-white">The Great Ones</p>
-                               </div>
-                               <p class="text-gray-400 font-mono text-sm">6-4-0</p>
-                           </li>
-                           <!-- More teams... -->
+                        <ul id="standings-container" class="divide-y divide-gray-800">
+                           <!-- Standings will be dynamically inserted here -->
                         </ul>
                     </div>
                 </div>
@@ -136,6 +201,254 @@
         </main>
     </div>
 
+<script>
+    // --- DATA STORE ---
+    let leagueData = {};
+    let isAdmin = false;
+
+    const defaultData = {
+        teams: [
+            { id: 1, name: "Puck Hogs", wins: 8, losses: 2, ties: 0, logo: "https://placehold.co/100x100/FFD700/000000?text=P" },
+            { id: 2, name: "The Great Ones", wins: 6, losses: 4, ties: 0, logo: "https://placehold.co/100x100/DC143C/FFFFFF?text=G" },
+            { id: 3, name: "Ice Vipers", wins: 5, losses: 5, ties: 0, logo: "https://placehold.co/100x100/1E40AF/FFFFFF?text=V" },
+            { id: 4, name: "Blade Runners", wins: 3, losses: 7, ties: 0, logo: "https://placehold.co/100x100/16A34A/FFFFFF?text=B" }
+        ],
+        matchups: [
+            { id: 1, team1_id: 1, team2_id: 2, team1_score: 125.7, team2_score: 98.2 },
+            { id: 2, team1_id: 3, team2_id: 4, team1_score: 105.5, team2_score: 110.1 }
+        ]
+    };
+
+    // --- INITIALIZATION ---
+    document.addEventListener('DOMContentLoaded', () => {
+        loadData();
+        checkAdminState();
+        renderAll();
+        
+        document.getElementById('login-form').addEventListener('submit', handleLogin);
+        document.getElementById('edit-matchup-form').addEventListener('submit', handleSaveMatchup);
+    });
+
+    function loadData() {
+        const savedData = localStorage.getItem('foxAndHoundsData');
+        if (savedData) {
+            leagueData = JSON.parse(savedData);
+        } else {
+            leagueData = JSON.parse(JSON.stringify(defaultData)); // Deep copy
+            saveData();
+        }
+    }
+
+    function saveData() {
+        localStorage.setItem('foxAndHoundsData', JSON.stringify(leagueData));
+    }
+
+    function getTeamById(id) {
+        return leagueData.teams.find(t => t.id === id);
+    }
+    
+    // --- RENDER FUNCTIONS ---
+    function renderAll() {
+        renderMatchups();
+        renderStandings();
+        toggleAdminUI();
+    }
+
+    function renderMatchups() {
+        const container = document.getElementById('matchups-container');
+        container.innerHTML = '';
+        if (leagueData.matchups.length === 0) {
+            container.innerHTML = `<div class="card rounded-lg p-6 text-center text-gray-400">No matchups to display.</div>`;
+            return;
+        }
+
+        leagueData.matchups.forEach(matchup => {
+            const team1 = getTeamById(matchup.team1_id);
+            const team2 = getTeamById(matchup.team2_id);
+            if (!team1 || !team2) return;
+
+            const matchupHTML = `
+                <div class="card rounded-lg p-6 relative">
+                    <div class="admin-controls absolute top-2 right-2 space-x-2">
+                        <button onclick="openEditMatchupModal(${matchup.id})" class="text-xs text-yellow-400 hover:text-yellow-300">Edit</button>
+                        <button onclick="deleteMatchup(${matchup.id})" class="text-xs text-red-500 hover:text-red-400">Delete</button>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <div class="flex flex-col items-center text-center w-1/3">
+                            <img class="team-logo" src="${team1.logo}" alt="${team1.name} logo">
+                            <p class="font-bold text-lg mt-2">${team1.name}</p>
+                            <p class="text-sm text-gray-400">${team1.wins}-${team1.losses}-${team1.ties}</p>
+                        </div>
+                        <div class="flex items-center justify-center flex-grow">
+                            <p class="score">${matchup.team1_score || 0}</p>
+                            <div class="vs-circle mx-6">VS</div>
+                            <p class="score">${matchup.team2_score || 0}</p>
+                        </div>
+                        <div class="flex flex-col items-center text-center w-1/3">
+                            <img class="team-logo" src="${team2.logo}" alt="${team2.name} logo">
+                            <p class="font-bold text-lg mt-2">${team2.name}</p>
+                            <p class="text-sm text-gray-400">${team2.wins}-${team2.losses}-${team2.ties}</p>
+                        </div>
+                    </div>
+                </div>`;
+            container.innerHTML += matchupHTML;
+        });
+    }
+
+    function renderStandings() {
+        const container = document.getElementById('standings-container');
+        container.innerHTML = '';
+        const sortedTeams = [...leagueData.teams].sort((a, b) => b.wins - a.wins || a.losses - b.losses);
+        
+        sortedTeams.forEach((team, index) => {
+            const standingHTML = `
+                <li class="py-3 flex justify-between items-center">
+                    <div class="flex items-center">
+                        <span class="rank-number w-6 text-center">${index + 1}</span>
+                        <img class="team-logo w-8 h-8 ml-3" src="${team.logo}" alt="${team.name} logo">
+                        <p class="ml-3 font-medium text-white">${team.name}</p>
+                    </div>
+                    <p class="text-gray-400 font-mono text-sm">${team.wins}-${team.losses}-${team.ties}</p>
+                </li>`;
+            container.innerHTML += standingHTML;
+        });
+    }
+
+    // --- ADMIN & EDITOR LOGIC ---
+    function checkAdminState() {
+        if (sessionStorage.getItem('isAdmin') === 'true') {
+            isAdmin = true;
+        }
+    }
+
+    function toggleAdminUI() {
+        const body = document.querySelector('body');
+        const loginBtn = document.getElementById('admin-login-btn');
+        const logoutBtn = document.getElementById('admin-logout-btn');
+
+        if (isAdmin) {
+            body.classList.add('admin-mode');
+            loginBtn.classList.add('hidden');
+            logoutBtn.classList.remove('hidden');
+        } else {
+            body.classList.remove('admin-mode');
+            loginBtn.classList.remove('hidden');
+            logoutBtn.classList.add('hidden');
+        }
+    }
+
+    function toggleLoginModal(show) {
+        const modal = document.getElementById('admin-login-modal');
+        const error = document.getElementById('login-error');
+        error.classList.add('hidden');
+        if (show) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        } else {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+    }
+    
+    function handleLogin(event) {
+        event.preventDefault();
+        const password = document.getElementById('password-input').value;
+        // In a real app, this would be a secure check against a server.
+        if (password === 'foxandhounds') {
+            isAdmin = true;
+            sessionStorage.setItem('isAdmin', 'true');
+            toggleLoginModal(false);
+            renderAll();
+        } else {
+            const error = document.getElementById('login-error');
+            error.classList.remove('hidden');
+        }
+    }
+
+    function logout() {
+        isAdmin = false;
+        sessionStorage.removeItem('isAdmin');
+        renderAll();
+    }
+    
+    // Matchup Editor
+    function toggleEditMatchupModal(show) {
+        const modal = document.getElementById('edit-matchup-modal');
+        if (show) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        } else {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+    }
+
+    function populateTeamSelect(selectId, selectedId) {
+        const select = document.getElementById(selectId);
+        select.innerHTML = '';
+        leagueData.teams.forEach(team => {
+            const option = document.createElement('option');
+            option.value = team.id;
+            option.textContent = team.name;
+            if (team.id === selectedId) {
+                option.selected = true;
+            }
+            select.appendChild(option);
+        });
+    }
+
+    function openEditMatchupModal(matchupId) {
+        const matchup = leagueData.matchups.find(m => m.id === matchupId);
+        if (!matchup) return;
+        
+        document.getElementById('edit-matchup-id').value = matchup.id;
+        populateTeamSelect('edit-team1-id', matchup.team1_id);
+        document.getElementById('edit-team1-score').value = matchup.team1_score;
+        populateTeamSelect('edit-team2-id', matchup.team2_id);
+        document.getElementById('edit-team2-score').value = matchup.team2_score;
+
+        toggleEditMatchupModal(true);
+    }
+    
+    function handleSaveMatchup(event) {
+        event.preventDefault();
+        const id = parseInt(document.getElementById('edit-matchup-id').value);
+        const team1_id = parseInt(document.getElementById('edit-team1-id').value);
+        const team1_score = parseFloat(document.getElementById('edit-team1-score').value) || 0;
+        const team2_id = parseInt(document.getElementById('edit-team2-id').value);
+        const team2_score = parseFloat(document.getElementById('edit-team2-score').value) || 0;
+        
+        if (id) { // Editing existing
+            const matchupIndex = leagueData.matchups.findIndex(m => m.id === id);
+            if (matchupIndex > -1) {
+                leagueData.matchups[matchupIndex] = { id, team1_id, team2_id, team1_score, team2_score };
+            }
+        } else { // Adding new
+             const newId = leagueData.matchups.length > 0 ? Math.max(...leagueData.matchups.map(m => m.id)) + 1 : 1;
+             leagueData.matchups.push({ id: newId, team1_id, team2_id, team1_score, team2_score });
+        }
+        
+        saveData();
+        renderAll();
+        toggleEditMatchupModal(false);
+    }
+
+    function addMatchup() {
+        document.getElementById('edit-matchup-form').reset();
+        document.getElementById('edit-matchup-id').value = '';
+        populateTeamSelect('edit-team1-id', leagueData.teams[0]?.id);
+        populateTeamSelect('edit-team2-id', leagueData.teams[1]?.id);
+        toggleEditMatchupModal(true);
+    }
+
+    function deleteMatchup(matchupId) {
+        // In a real app, you'd want a confirmation dialog.
+        leagueData.matchups = leagueData.matchups.filter(m => m.id !== matchupId);
+        saveData();
+        renderAll();
+    }
+
+</script>
 </body>
 </html>
 
