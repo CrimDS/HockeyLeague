@@ -20,9 +20,18 @@ export default async function handler(req, res) {
         
         const data = await response.json();
         
+        // **FIX**: Add a safety check to ensure the data structure is valid before processing.
+        // If data.data is not a valid array, the API has returned an unexpected format.
+        if (!data || !Array.isArray(data.data)) {
+            console.warn("NHL API did not return the expected data array. Response:", JSON.stringify(data));
+            // Return an empty array to prevent a crash, which will result in a "No Players Found" message on the front end.
+            res.status(200).json([]);
+            return;
+        }
+
         // The new API has a different structure. We need to map the fields.
         const mappedStats = data.data.map(player => {
-            // **FIX**: Manually construct a more reliable headshot URL.
+            // Manually construct a more reliable headshot URL.
             const headshotUrl = `https://assets.nhle.com/mugs/nhl/latest/${player.teamAbbrevs}/${player.playerId}.png`;
             
             return {
