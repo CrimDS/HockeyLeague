@@ -18,7 +18,8 @@ export default async function handler(req, res) {
     // This uses the 'realtime' endpoint which contains all necessary stats in one call.
     // - `limit=-1` requests all players.
     // - `gameTypeId=2` filters for regular season games only.
-    const url = `https://api.nhle.com/stats/rest/en/skater/realtime?isAggregate=false&isGame=false&sort=[{"property":"points","direction":"DESC"}]&limit=-1&cayenneExp=seasonId=${seasonId} and gameTypeId=2 and gamesPlayed>=1`;
+    const baseUrl = `https://api.nhle.com/stats/rest/en/skater`;
+    const commonParams = `isAggregate=false&isGame=false&limit=-1&cayenneExp=seasonId=${seasonId} and gameTypeId=2 and gamesPlayed>=1`;
 
     try {
         console.log(`[V2] Fetching all player stats from REALTIME endpoint for season ${seasonId}...`);
