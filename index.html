@@ -290,7 +290,11 @@
                 let individualStatsHTML;
 
                 if (!hasAwayPlayers && !hasHomePlayers) {
-                    individualStatsHTML = `<p class="text-center text-sm text-gray-500 py-4">Player stats will appear after the game starts.</p>`;
+                    if (gameData.isCompleted) {
+                         individualStatsHTML = `<p class="text-center text-sm text-gray-500 py-4">Detailed player stats are not available for this game.</p>`;
+                    } else {
+                         individualStatsHTML = `<p class="text-center text-sm text-gray-500 py-4">Player stats will appear after the game starts.</p>`;
+                    }
                 } else {
                     individualStatsHTML = `
                         <div class="max-h-52 overflow-y-auto">
