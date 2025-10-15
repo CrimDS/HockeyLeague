@@ -4,22 +4,12 @@
 export default async function handler(req, res) {
     // 1. Determine the season to fetch
     const { season } = req.query;
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth(); // 0-11 (Jan-Dec)
-    // An NHL season crosses calendar years, typically starting in October (month 9).
-    const defaultSeasonId = currentMonth >= 9 
-        ? `${currentYear}${currentYear + 1}` 
-        : `${currentYear - 1}${currentYear}`;
-    
-    const seasonId = season || defaultSeasonId;
+    const seasonId = season || '20232024'; 
+
 
     // 2. Construct the single, reliable API URL
-    // This uses the 'realtime' endpoint which contains all necessary stats in one call.
-    // - `limit=-1` requests all players.
-    // - `gameTypeId=2` filters for regular season games only.
-    const baseUrl = `https://api.nhle.com/stats/rest/en/skater`;
-    const commonParams = `isAggregate=false&isGame=false&limit=-1&cayenneExp=seasonId=${seasonId} and gameTypeId=2 and gamesPlayed>=1`;
+    const url = `https://api.nhle.com/stats/rest/en/skater/summary?isAggregate=false&isGame=false&sort=[{"property":"hits","direction":"DESC"}]&limit=-1&cayenneExp=seasonId=${seasonId} and gameTypeId=2 and gamesPlayed>=1`;
+
 
     try {
         console.log(`[V2] Fetching all player stats from REALTIME endpoint for season ${seasonId}...`);
