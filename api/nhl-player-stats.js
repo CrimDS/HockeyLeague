@@ -2,7 +2,12 @@
 
 export default async function handler(req, res) {
     const { season } = req.query;
-    const seasonId = season || '20252026'; 
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth(); // 0-11 (Jan-Dec)
+    // A new NHL season starts in October (month 9)
+    const defaultSeasonId = currentMonth >= 9 ? `${currentYear}${currentYear + 1}` : `${currentYear - 1}${currentYear}`;
+    const seasonId = season || defaultSeasonId; 
     
     const baseUrl = `https://api.nhle.com/stats/rest/en/skater`;
     const commonParams = `isAggregate=false&isGame=false&limit=-1&cayenneExp=seasonId=${seasonId} and gameTypeId=2 and gamesPlayed>=1`;
@@ -43,8 +48,8 @@ export default async function handler(req, res) {
                 plusMinus: player.plusMinus,
                 penaltyMinutes: String(player.penaltyMinutes),
                 powerPlayGoals: player.ppGoals,
-                hits: 0,
-                blockedShots: 0,
+                blockedShots: player.blockedShots,
+                hits: player.hits,
             });
         });
 
