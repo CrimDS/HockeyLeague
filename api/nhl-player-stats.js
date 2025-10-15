@@ -27,8 +27,14 @@ export default async function handler(req, res) {
         data.leaders.forEach(category => {
             const statName = category.shortDisplayName; // e.g., "G", "A", "+/-"
             
+            // **FIX 2:** Add a defensive check to ensure the category has a leaders array.
+            // Sometimes the API might return a category object without any player entries.
+            if (!category.leaders || !Array.isArray(category.leaders)) {
+                return; // Skip this category if it has no leaders array.
+            }
+
             category.leaders.forEach(playerEntry => {
-                // **FIX:** Add a defensive check to ensure the entry has an athlete object.
+                // **FIX 1:** Add a defensive check to ensure the entry has an athlete object.
                 // Sometimes the API returns entries that are not players.
                 if (!playerEntry.athlete) {
                     return; // Skip this entry if it's not a valid player.
@@ -86,7 +92,7 @@ export default async function handler(req, res) {
         // Ensure that any player who has points has their games played value, as it can be missing
         consolidatedStats.forEach(p => {
             if (p.points > 0 && p.gamesPlayed === 0) {
-                 const gpLeader = data.leaders.find(c => c.shortDisplayName === 'GP')?.leaders.find(l => l.athlete.id === p.id);
+                 const gpLeader = data.leaders.find(c => c.shortDisplayName === 'GP')?.leaders.find(l => l.athlete && l.athlete.id === p.id);
                  if (gpLeader) {
                      p.gamesPlayed = Math.round(gpLeader.value);
                  }
