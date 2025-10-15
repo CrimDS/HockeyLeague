@@ -1,118 +1,104 @@
-export default async function handler(req, res) {
-    // Vercel uses `req.query` to access URL query parameters like "?id=..."
-    const { id } = req.query;
+// This function fetches detailed game statistics, including "banger" stats, for a specific NHL game.
+// It's designed to be robust and handle cases where stats may not be available.
+export const config = {
+  runtime: 'edge',
+};
 
-    if (!id) {
-        return res.status(400).json({ error: 'A Game ID is required to fetch stats.' });
+// A helper function to safely find and extract a statistic.
+// If the stat is not found, it returns a default value.
+const getStat = (teamStats, statName, defaultValue) => {
+  const stat = teamStats.find(s => s.name === statName);
+  return stat ? stat.displayValue : defaultValue;
+};
+
+// The main handler for the serverless function.
+export default async function handler(request) {
+  const { searchParams } = new URL(request.url);
+  const gameId = searchParams.get('id');
+
+  if (!gameId) {
+    return new Response(JSON.stringify({ error: 'Game ID is required.' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  const GAME_URL = `https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/summary?event=${gameId}`;
+
+  try {
+    const response = await fetch(GAME_URL, {
+      headers: { 'Accept': 'application/json' }
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch game data. Status: ${response.status}`);
     }
+    const data = await response.json();
 
-    try {
-        // This is the specific ESPN API endpoint for a game's summary data
-        const url = `https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/summary?event=${id}`;
-        const response = await fetch(url);
+    const homeTeam = data.boxscore.teams.find(t => t.team.homeAway === 'home');
+    const awayTeam = data.boxscore.teams.find(t => t.team.homeAway === 'away');
 
-        if (!response.ok) {
-            throw new Error(`Failed to fetch game summary from ESPN: ${response.statusText}`);
-        }
+    // --- TEAM STATS ---
+    const teamStats = {
+      shotsOnGoal: {
+        away: getStat(awayTeam.statistics, 'shotsOnGoal', '0'),
+        home: getStat(homeTeam.statistics, 'shotsOnGoal', '0'),
+      },
+      hits: {
+        away: getStat(awayTeam.statistics, 'hits', '0'),
+        home: getStat(homeTeam.statistics, 'hits', '0'),
+      },
+      blockedShots: {
+        away: getStat(awayTeam.statistics, 'blockedShots', '0'),
+        home: getStat(homeTeam.statistics, 'blockedShots', '0'),
+      },
+      penaltyMinutes: {
+        away: getStat(awayTeam.statistics, 'penaltyMinutes', '0'),
+        home: getStat(homeTeam.statistics, 'penaltyMinutes', '0'),
+      },
+      powerPlays: {
+        away: getStat(awayTeam.statistics, 'powerPlay', '0/0').replace(' / ', '/'),
+        home: getStat(homeTeam.statistics, 'powerPlay', '0/0').replace(' / ', '/'),
+      },
+    };
 
-        const data = await response.json();
-        
-        // --- Team Stats Parsing ---
-        const boxscore = data.boxscore;
-        const awayTeamBoxscore = boxscore.teams[1];
-        const homeTeamBoxscore = boxscore.teams[0];
+    // --- INDIVIDUAL PLAYER STATS ---
+    const parsePlayerStats = (players) => {
+      if (!players) return [];
+      return players
+        .filter(p => p.stats.length > 0 && p.position.abbreviation !== 'G') // Filter out goalies and players with no stats
+        .map(p => ({
+          name: p.athlete.displayName,
+          position: p.position.abbreviation,
+          G: getStat(p.stats, 'goals', '0'),
+          A: getStat(p.stats, 'assists', '0'),
+          SOG: getStat(p.stats, 'shotsOnGoal', '0'),
+          HITS: getStat(p.stats, 'hits', '0'),
+          BS: getStat(p.stats, 'blockedShots', '0'),
+          PIM: getStat(p.stats, 'penaltyMinutes', '0'),
+        }))
+        // Sort players with goals or assists to the top
+        .sort((a, b) => (parseInt(b.G) + parseInt(b.A)) - (parseInt(a.G) + parseInt(a.A)));
+    };
 
-        // Helper function to find a specific stat's value for a team
-        const getTeamStat = (statsArray, statName) => {
-            const stat = statsArray.find(s => s.name === statName);
-            return stat ? (stat.displayValue.includes('/') ? stat.displayValue : parseInt(stat.displayValue)) : 0;
-        };
-        
-        const teamStats = {
-            shotsOnGoal: {
-                away: getTeamStat(awayTeamBoxscore.statistics, 'shotsOnGoal'),
-                home: getTeamStat(homeTeamBoxscore.statistics, 'shotsOnGoal'),
-            },
-            hits: {
-                away: getTeamStat(awayTeamBoxscore.statistics, 'hits'),
-                home: getTeamStat(homeTeamBoxscore.statistics, 'hits'),
-            },
-            blockedShots: {
-                away: getTeamStat(awayTeamBoxscore.statistics, 'blockedShots'),
-                home: getTeamStat(homeTeamBoxscore.statistics, 'blockedShots'),
-            },
-            penaltyMinutes: {
-                away: getTeamStat(awayTeamBoxscore.statistics, 'penaltyMinutes'),
-                home: getTeamStat(homeTeamBoxscore.statistics, 'penaltyMinutes'),
-            },
-            powerPlays: {
-                away: getTeamStat(awayTeamBoxscore.statistics, 'powerPlay') || '0/0',
-                home: getTeamStat(homeTeamBoxscore.statistics, 'powerPlay') || '0/0',
-            }
-        };
+    const individualPlayerStats = {
+      away: parsePlayerStats(awayTeam.athletes),
+      home: parsePlayerStats(homeTeam.athletes),
+    };
 
-        // --- Individual Player Stats Parsing ---
-        const parsePlayerStats = (playerData) => {
-            const skaterStats = playerData.statistics.find(s => s.name === 'skaters');
-            if (!skaterStats || !skaterStats.athletes) return [];
+    return new Response(JSON.stringify({ teamStats, individualPlayerStats }), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=5', // Cache for 10 seconds
+      },
+    });
 
-            const statLabels = skaterStats.labels; // e.g., ['G', 'A', 'S', '+/-', 'PIM', 'HITS', 'BS']
-            
-            const gIndex = statLabels.indexOf('G');
-            const aIndex = statLabels.indexOf('A');
-            const sogIndex = statLabels.indexOf('S');
-            const hitsIndex = statLabels.indexOf('HITS');
-            const bsIndex = statLabels.indexOf('BS');
-            const pimIndex = statLabels.indexOf('PIM');
-
-            return skaterStats.athletes.map(athlete => {
-                if (athlete.stats.length === 0) return null;
-                
-                const stats = {
-                    name: athlete.athlete.displayName,
-                    position: athlete.athlete.position.abbreviation,
-                    G: gIndex !== -1 ? athlete.stats[gIndex] : '0',
-                    A: aIndex !== -1 ? athlete.stats[aIndex] : '0',
-                    SOG: sogIndex !== -1 ? athlete.stats[sogIndex] : '0',
-                    HITS: hitsIndex !== -1 ? athlete.stats[hitsIndex] : '0',
-                    BS: bsIndex !== -1 ? athlete.stats[bsIndex] : '0',
-                    PIM: pimIndex !== -1 ? athlete.stats[pimIndex] : '0',
-                };
-
-                // Only include players who had at least one recorded stat
-                const hasStats = (stats.G !== '0' || stats.A !== '0' || stats.SOG !== '0' || stats.HITS !== '0' || stats.BS !== '0' || stats.PIM !== '0');
-                return hasStats ? stats : null;
-
-            }).filter(p => p !== null);
-        };
-
-        const awayPlayerData = boxscore.players.find(p => p.team.id === awayTeamBoxscore.team.id);
-        const homePlayerData = boxscore.players.find(p => p.team.id === homeTeamBoxscore.team.id);
-
-        const individualPlayerStats = {
-            away: awayPlayerData ? parsePlayerStats(awayPlayerData) : [],
-            home: homePlayerData ? parsePlayerStats(homePlayerData) : [],
-        };
-
-        // --- Scoring Plays Parsing ---
-        const scoringPlays = data.scoringPlays?.map(play => ({
-            period: play.period.displayValue,
-            time: play.clock.displayValue,
-            text: play.text,
-        })).slice(0, 5);
-
-        // --- Final Combined Object ---
-        const gameStats = {
-            teamStats,
-            individualPlayerStats,
-            scoringPlays,
-        };
-        
-        res.status(200).json(gameStats);
-
-    } catch (error) {
-        console.error(`Error fetching stats for game ID ${id}:`, error);
-        res.status(500).json({ error: 'An error occurred while fetching game stats.' });
-    }
+  } catch (error) {
+    console.error(`Error fetching game stats for ID ${gameId}:`, error);
+    return new Response(JSON.stringify({ error: 'Could not fetch game stats.' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 }
 
