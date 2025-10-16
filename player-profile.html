@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Player Profile - Fox & Hounds Hockey League</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -34,6 +34,18 @@
             width: 40px;
             height: 40px;
             animation: spin 1s linear infinite;
+        }
+        .stat-card {
+             background-color: #111;
+            border: 1px solid #333;
+        }
+        .player-headshot {
+            max-width: 180px;
+            border-radius: 8px;
+            border: 2px solid #333;
+        }
+        .team-logo {
+            max-width: 100px;
         }
         @keyframes spin {
             0% { transform: rotate(0deg); }
@@ -72,6 +84,10 @@
                 <div id="loader-container" class="min-h-[400px] flex items-center justify-center">
                     <div class="loader"></div>
                 </div>
+                <div id="error-container" class="min-h-[400px] hidden items-center justify-center flex-col text-center">
+                    <p class="text-lg font-semibold text-red-500">Could not load player profile.</p>
+                    <p class="text-gray-400 mt-1">Please check the player ID and try again.</p>
+                </div>
                  <!-- Player profile content will be loaded here -->
             </div>
         </main>
@@ -83,25 +99,110 @@
         const urlParams = new URLSearchParams(window.location.search);
         const playerId = urlParams.get('id');
 
-        if (playerId) {
-            // For now, we'll just display a placeholder.
-            // A future step would be to create a new API endpoint to fetch specific player data.
-            profileContainer.innerHTML = `
-                <div class="text-center p-8 bg-[#111] border border-gray-800 rounded-lg">
-                    <h2 class="text-2xl font-bold text-white">Player Profile</h2>
-                    <p class="text-gray-400 mt-2">Displaying information for player with ID: <span class="font-mono text-yellow-400">${playerId}</span></p>
-                    <p class="mt-4 text-sm text-gray-500">(Full profile page coming soon!)</p>
-                </div>
-            `;
-        } else {
-            profileContainer.innerHTML = `
-                <div class="text-center p-8 bg-[#111] border border-gray-800 rounded-lg">
-                    <h2 class="text-2xl font-bold text-white text-red-500">Error</h2>
-                    <p class="text-gray-400 mt-2">No player ID was provided.</p>
-                </div>
-            `;
+        const showLoader = (show) => document.getElementById('loader-container').style.display = show ? 'flex' : 'none';
+        const showError = (show) => document.getElementById('error-container').style.display = show ? 'flex' : 'none';
+
+        async function fetchProfileData() {
+            if (!playerId) {
+                showLoader(false);
+                showError(true);
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/nhl-player-profile?id=${playerId}`);
+                if (!response.ok) {
+                    throw new Error('API request failed');
+                }
+                const data = await response.json();
+                renderProfile(data);
+
+            } catch (error) {
+                console.error("Failed to fetch player profile", error);
+                showError(true);
+            } finally {
+                showLoader(false);
+            }
         }
+        
+        function renderProfile(data) {
+            const isGoalie = data.position === 'G';
+            const seasonStats = data.seasonTotals.slice(-1)[0]; // Get the most recent season
+
+            const profileHTML = `
+                <div class="stat-card rounded-lg p-6 md:p-8">
+                    <div class="flex flex-col md:flex-row items-center md:items-start text-center md:text-left">
+                        <img class="player-headshot mb-4 md:mb-0 md:mr-8" src="${data.headshot}" alt="${data.firstName.default} ${data.lastName.default}">
+                        <div class="flex-grow">
+                            <div class="flex items-center justify-center md:justify-start">
+                                <h2 class="text-4xl md:text-5xl font-extrabold text-white tracking-tight">${data.firstName.default} ${data.lastName.default}</h2>
+                                <span class="text-6xl md:text-7xl font-black text-gray-700 ml-4">#${data.sweaterNumber}</span>
+                            </div>
+                            <p class="text-xl text-gray-400">${data.position} | ${data.teamName.default}</p>
+                            <div class="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4 text-left">
+                                <div><p class="text-xs text-gray-500">Height</p><p class="font-semibold">${Math.floor(data.heightInInches / 12)}' ${data.heightInInches % 12}"</p></div>
+                                <div><p class="text-xs text-gray-500">Weight</p><p class="font-semibold">${data.weightInPounds} lbs</p></div>
+                                <div><p class="text-xs text-gray-500">Catches/Shoots</p><p class="font-semibold">${data.shootsCatches}</p></div>
+                                <div><p class="text-xs text-gray-500">Born</p><p class="font-semibold">${data.birthDate}</p></div>
+                                <div class="col-span-2"><p class="text-xs text-gray-500">Birthplace</p><p class="font-semibold">${data.birthCity}, ${data.birthStateProvince ? data.birthStateProvince + ', ' : ''}${data.birthCountry}</p></div>
+                            </div>
+                        </div>
+                        <img class="team-logo hidden lg:block ml-8 self-center" src="${data.teamLogo}" alt="${data.teamName.default} logo">
+                    </div>
+                </div>
+
+                <div class="mt-8">
+                    <h3 class="text-2xl font-bold text-white mb-4">Season Stats (${seasonStats.season})</h3>
+                    <div class="overflow-x-auto stat-card rounded-lg">
+                        ${isGoalie ? renderGoalieStatsTable(seasonStats) : renderSkaterStatsTable(seasonStats)}
+                    </div>
+                </div>
+            `;
+            profileContainer.innerHTML = profileHTML;
+        }
+        
+        function renderSkaterStatsTable(stats) {
+            return `
+                <table class="min-w-full text-center">
+                    <thead class="bg-gray-900 text-xs uppercase tracking-wider">
+                        <tr>
+                            <th class="p-3">GP</th><th class="p-3">G</th><th class="p-3">A</th>
+                            <th class="p-3">P</th><th class="p-3">+/-</th><th class="p-3">PIM</th>
+                            <th class="p-3">PPG</th><th class="p-3">HITS</th><th class="p-3">BS</th><th class="p-3">TOI/G</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-lg">
+                        <tr class="border-t border-gray-800">
+                            <td class="p-3">${stats.gamesPlayed}</td><td class="p-3">${stats.goals}</td><td class="p-3">${stats.assists}</td>
+                            <td class="p-3 font-bold text-yellow-400">${stats.points}</td><td class="p-3">${stats.plusMinus}</td><td class="p-3">${stats.pim}</td>
+                            <td class="p-3">${stats.powerPlayGoals}</td><td class="p-3">${stats.hits}</td><td class="p-3">${stats.blockedShots}</td><td class="p-3">${stats.avgToi}</td>
+                        </tr>
+                    </tbody>
+                </table>`;
+        }
+        
+        function renderGoalieStatsTable(stats) {
+             return `
+                <table class="min-w-full text-center">
+                    <thead class="bg-gray-900 text-xs uppercase tracking-wider">
+                        <tr>
+                            <th class="p-3">GP</th><th class="p-3">W</th><th class="p-3">L</th>
+                            <th class="p-3">OTL</th><th class="p-3">SV%</th><th class="p-3">GAA</th>
+                            <th class="p-3">SO</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-lg">
+                        <tr class="border-t border-gray-800">
+                            <td class="p-3">${stats.gamesPlayed}</td><td class="p-3">${stats.wins}</td><td class="p-3">${stats.losses}</td>
+                            <td class="p-3">${stats.otLosses}</td><td class="p-3 font-bold text-yellow-400">${stats.savePctg.toFixed(3)}</td><td class="p-3">${stats.gaa.toFixed(2)}</td><td class="p-3">${stats.shutouts}</td>
+                        </tr>
+                    </tbody>
+                </table>`;
+        }
+
+        fetchProfileData();
     });
 </script>
 </body>
 </html>
+
