@@ -1,53 +1,47 @@
 // api/hockey-news.js
 
-// This endpoint fetches the latest hockey news headlines from ESPN's RSS feed.
+// This endpoint fetches the latest hockey news headlines from ESPN's modern JSON API.
 export default async function handler(req, res) {
-    const rssUrl = 'https://www.espn.com/espn/rss/nhl/news';
+    const apiUrl = 'https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/news';
 
     try {
-        console.log(`[Hockey News] Fetching news from: ${rssUrl}`);
-        // **FIX**: Added a 'User-Agent' header to mimic a browser request.
-        const response = await fetch(rssUrl, {
+        console.log(`[Hockey News V2] Fetching news from: ${apiUrl}`);
+        const response = await fetch(apiUrl, {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'
             }
         });
 
         if (!response.ok) {
-            throw new Error(`Failed to fetch RSS feed. Status: ${response.status}`);
+            throw new Error(`Failed to fetch news API. Status: ${response.status}`);
         }
 
-        const xmlText = await response.text();
+        const data = await response.json();
         
-        // Basic XML parsing to extract items
-        const items = xmlText.match(/<item>[\s\S]*?<\/item>/g) || [];
+        if (!data.articles || !Array.isArray(data.articles)) {
+            throw new Error("Invalid data structure received from news API.");
+        }
+
         const now = new Date();
         const twentyFourHoursAgo = new Date(now.getTime() - (24 * 60 * 60 * 1000));
 
-        const headlines = items.map(item => {
-            const titleMatch = item.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/);
-            const linkMatch = item.match(/<link><!\[CDATA\[(.*?)\]\]><\/link>/);
-            const pubDateMatch = item.match(/<pubDate>(.*?)<\/pubDate>/);
-
-            if (titleMatch && linkMatch && pubDateMatch) {
-                const pubDate = new Date(pubDateMatch[1]);
-                return {
-                    title: titleMatch[1],
-                    link: linkMatch[1],
-                    pubDate: pubDate,
-                };
-            }
-            return null;
+        const headlines = data.articles.map(article => {
+            const pubDate = new Date(article.published);
+            return {
+                title: article.headline,
+                link: article.links.web.href,
+                pubDate: pubDate,
+            };
         }).filter(item => {
             // Filter for items from the last 24 hours
             return item && item.pubDate >= twentyFourHoursAgo;
         });
         
-        console.log(`[Hockey News] Found ${headlines.length} articles from the last 24 hours.`);
+        console.log(`[Hockey News V2] Found ${headlines.length} articles from the last 24 hours.`);
         res.status(200).json({ headlines });
 
     } catch (error) {
-        console.error("[Hockey News] Critical error:", error.message);
+        console.error("[Hockey News V2] Critical error:", error.message);
         res.status(500).json({ error: "Could not fetch hockey news." });
     }
 }
