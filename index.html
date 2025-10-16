@@ -32,6 +32,8 @@
         .news-headline:last-child { border-bottom: none; }
         .news-headline:hover { color: #fff; }
         .modal-backdrop { background-color: rgba(0,0,0,0.7); }
+        .btn-secondary { background-color: #333; color: white; border: 1px solid #333; padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; }
+        .btn-secondary:hover { background-color: #444; }
     </style>
 </head>
 <body class="text-gray-300">
@@ -53,13 +55,13 @@
         </div>
     </header>
 
-    <div id="matchups-header" class="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-10 text-center"><h2 class="text-2xl font-semibold text-white">Weekly Matchups</h2></div>
+    <div id="matchups-header" class="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-10 text-center"><div id="matchups-header-content"></div></div>
     <div class="ticker-wrapper fantasy-ticker"><div id="fantasy-ticker-container" class="ticker-container"></div></div>
     
     <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div class="space-y-6">
-                 <div class="text-center"><h2 class="text-2xl font-semibold text-white">League Standings</h2></div>
+                 <div class="text-center"><div id="standings-header-content"></div></div>
                 <div class="card rounded-lg p-4"><ul id="standings-container" class="divide-y divide-gray-800"></ul></div>
             </div>
             <div class="space-y-6">
@@ -116,7 +118,13 @@
     });
 
     function loadData(){const e=localStorage.getItem("foxAndHoundsData");leagueData=e?JSON.parse(e):JSON.parse(JSON.stringify(defaultData))}
-    function loadContent(){const e=localStorage.getItem("foxAndHoundsContent");pageContent=e?JSON.parse(e):{},document.querySelectorAll(".editable-content").forEach(e=>{pageContent[e.id]&&(e.innerHTML=pageContent[e.id])}),renderLeagueNews()}
+    function loadContent(){
+        const e=localStorage.getItem("foxAndHoundsContent");
+        pageContent=e?JSON.parse(e):{};
+        document.getElementById('matchups-header-content').innerHTML = pageContent['matchups-header'] || '<h2 class="text-2xl font-semibold text-white">Weekly Matchups</h2>';
+        document.getElementById('standings-header-content').innerHTML = pageContent['standings-header'] || '<h2 class="text-2xl font-semibold text-white">League Standings</h2>';
+        renderLeagueNews();
+    }
     function getTeamById(e){return leagueData.teams.find(t=>t.id===e)}
     function renderAll(){renderMatchups(),renderStandings(),renderLeagueNews()}
     function renderMatchups(){const e=document.getElementById("fantasy-ticker-container");if(e){if(e.innerHTML=" ",!leagueData.matchups||0===leagueData.matchups.length)return void(e.innerHTML='<div class="scoreboard-card items-center justify-center text-gray-500">No Matchups Set</div>');let t="";leagueData.matchups.forEach(e=>{const n=getTeamById(e.team1_id),o=getTeamById(e.team2_id);n&&o&&(t+=`\n                <div class="scoreboard-card">\n                    <div class="flex items-center justify-between w-full text-sm">\n                        <div class="flex items-center truncate pr-4">\n                            <img src="${n.logo}" class="team-logo-sm mr-2 flex-shrink-0" onerror="this.src='https://placehold.co/24x24/111/fff?text=?';">\n                            <span class="font-semibold truncate">${n.name}</span>\n                        </div>\n                        <div class="font-bold text-lg text-yellow-400 whitespace-nowrap">\n                            <span>${e.team1_score||0}</span>\n                            <span class="text-gray-500 mx-2">-</span>\n                            <span>${e.team2_score||0}</span>\n                        </div>\n                        <div class="flex items-center truncate pl-4 justify-end">\n                            <span class="font-semibold truncate text-right">${o.name}</span>\n                            <img src="${o.logo}" class="team-logo-sm ml-2 flex-shrink-0" onerror="this.src='https://placehold.co/24x24/111/fff?text=?';">\n                        </div>\n                    </div>\n                </div>`)}),e.innerHTML=t+t}}
