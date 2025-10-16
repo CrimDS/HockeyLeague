@@ -1,24 +1,31 @@
 // api/nhl-player-stats.js
 
 // This is a complete rewrite for stability, using the single 'realtime' endpoint.
-// If running in Node.js, ensure fetch is available
-import fetch from 'node-fetch';
-
 export default async function handler(req, res) {
     // 1. Determine the season to fetch
     const { season } = req.query;
-    const seasonId = season || '20232024'; 
-    // Use "points" for sorting skater stats, not "wins"
-
-    const url = `https://api.nhle.com/stats/rest/en/skater/realtime?limit=-1&cayenneExp=seasonId=20252026 and gameTypeId=2`;
-
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth(); // 0-11 (Jan-Dec)
+    // An NHL season crosses calendar years, typically starting in October (month 9).
+    const defaultSeasonId = currentMonth >= 9 
+        ? `${currentYear}${currentYear + 1}` 
+        : `${currentYear - 1}${currentYear}`;
     
+    const seasonId = season || defaultSeasonId;
+
+    // 2. Construct the single, reliable API URL
+    // This uses the 'realtime' endpoint which contains all necessary stats in one call.
+    // - `limit=-1` requests all players.
+    // - `gameTypeId=2` filters for regular season games only.
+    const url = `https://api.nhle.com/stats/rest/en/skater/realtime?isAggregate=false&isGame=false&sort=[{"property":"points","direction":"DESC"}]&limit=-1&cayenneExp=seasonId=${seasonId} and gameTypeId=2 and gamesPlayed>=1`;
+
     try {
-        console.log(`[V2] Fetching all player stats from REALTIME endpoint for season ${seasonId}...`);
+        console.log(`[V3] Fetching all player stats from REALTIME endpoint for season ${seasonId}...`);
         const response = await fetch(url);
 
         if (!response.ok) {
-            console.error(`[V2] NHL API responded with status: ${response.status} for URL: ${url}`);
+            console.error(`[V3] NHL API responded with status: ${response.status} for URL: ${url}`);
             throw new Error(`Failed to fetch player stats. Status: ${response.status}`);
         }
         
@@ -28,7 +35,7 @@ export default async function handler(req, res) {
         // This is the most critical step to prevent crashes. If the API returns something
         // other than a list of players, we stop here and return an empty array.
         if (!data || !Array.isArray(data.data)) {
-            console.warn("[V2] NHL API did not return the expected data array. The endpoint may be temporarily down or empty for this season.");
+            console.warn("[V3] NHL API did not return the expected data array. The endpoint may be temporarily down or empty for this season.");
             return res.status(200).json([]); // Return empty list, not an error.
         }
 
@@ -60,11 +67,11 @@ export default async function handler(req, res) {
             };
         });
 
-        console.log(`[V2] Processing complete. Found ${mappedStats.length} players.`);
+        console.log(`[V3] Processing complete. Found ${mappedStats.length} players.`);
         res.status(200).json(mappedStats);
 
     } catch (error) {
-        console.error("[V2] Critical error in nhl-player-stats function:", error.message);
+        console.error("[V3] Critical error in nhl-player-stats function:", error.message);
         res.status(500).json({ error: "Could not fetch player statistics.", details: error.message });
     }
 }
