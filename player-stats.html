@@ -54,6 +54,20 @@
             height: 40px;
             animation: spin 1s linear infinite;
         }
+        .pagination-btn {
+            background-color: #222;
+            border: 1px solid #444;
+            padding: 6px 12px;
+            border-radius: 6px;
+            transition: background-color 0.2s;
+        }
+        .pagination-btn:hover:not(:disabled) {
+            background-color: #333;
+        }
+        .pagination-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
@@ -127,7 +141,7 @@
                             <th class="py-3.5 px-3 text-left text-sm font-semibold text-white table-header-cell" data-sort="powerPlayGoals">PPG</th>
                             <th class="py-3.5 px-3 text-left text-sm font-semibold text-white table-header-cell" data-sort="hits">HITS</th>
                             <th class="py-3.5 px-3 text-left text-sm font-semibold text-white table-header-cell" data-sort="blockedShots">BS</th>
-                            <th class="py-3.5 px-3 text-left text-sm font-semibold text-white table-header-cell" data-sort="timeOnIce">TOI/G</th>
+                            <th class="py-3.5 px-3 text-left text-sm font-semibold text-white table-header-cell" data-sort="timeOnIce">TOI</th>
                         </tr>
                     </thead>
                     <tbody id="skaters-table-body" class="divide-y divide-gray-800">
@@ -160,6 +174,13 @@
                     <p class="text-gray-500 mt-1">There may be no stats available for this season yet, or your search returned no results.</p>
                 </div>
             </div>
+            
+            <!-- Pagination Controls -->
+            <div id="pagination-controls" class="hidden justify-between items-center mt-4 px-4 py-2">
+                <button id="prev-page-btn" class="pagination-btn">Previous</button>
+                <span id="page-info" class="text-sm text-gray-400"></span>
+                <button id="next-page-btn" class="pagination-btn">Next</button>
+            </div>
         </main>
     </div>
 
@@ -172,16 +193,20 @@
         
         let allSkaters = [];
         let allGoalies = [];
+        
         let currentSort = { key: 'points', direction: 'desc' };
         let currentView = 'skaters';
+        
+        // Pagination state
+        let currentPage = 1;
+        const rowsPerPage = 50;
 
         function populateSeasons() {
             const now = new Date();
             let currentYear = now.getFullYear();
             const currentMonth = now.getMonth();
 
-            // NHL season crosses calendar years, starting in Oct.
-            if (currentMonth < 9) { // Before October, the "current" season is the one that just finished.
+            if (currentMonth < 9) { 
                 currentYear--;
             }
             
@@ -202,6 +227,8 @@
             showTable('skaters', false);
             showTable('goalies', false);
             showNoResults(false);
+            showPagination(false);
+            currentPage = 1;
 
             try {
                 const [skatersResponse, goaliesResponse] = await Promise.all([
@@ -235,13 +262,20 @@
             }
         }
 
-        function filterAndSort(data) {
+        function getPaginatedData(data) {
              const query = searchInput.value.toLowerCase();
              const filtered = data.filter(p => p.name.toLowerCase().includes(query));
 
-             return filtered.sort((a, b) => {
+             const sorted = filtered.sort((a, b) => {
                 const valA = a[currentSort.key];
                 const valB = b[currentSort.key];
+
+                if (currentSort.key === 'timeOnIce') {
+                     const timeA = (valA.split(':')[0] * 60) + parseInt(valA.split(':')[1]);
+                     const timeB = (valB.split(':')[0] * 60) + parseInt(valB.split(':')[1]);
+                     if (currentSort.direction === 'asc') return timeA - timeB;
+                     return timeB - timeA;
+                }
 
                 if (currentSort.direction === 'asc') {
                     return valA > valB ? 1 : -1;
@@ -249,20 +283,29 @@
                     return valA < valB ? 1 : -1;
                 }
              });
+
+            const start = (currentPage - 1) * rowsPerPage;
+            const end = start + rowsPerPage;
+            
+            return {
+                paginatedItems: sorted.slice(start, end),
+                totalItems: sorted.length
+            };
         }
         
         function renderSkaters() {
-            const skaters = filterAndSort(allSkaters);
+            const { paginatedItems, totalItems } = getPaginatedData(allSkaters);
             const tableBody = document.getElementById('skaters-table-body');
             tableBody.innerHTML = '';
             
-            if(skaters.length === 0) {
+            if(totalItems === 0) {
                 showNoResults(true);
                 showTable('skaters', false);
+                showPagination(false);
                 return;
             }
             
-            skaters.forEach(player => {
+            paginatedItems.forEach(player => {
                 const row = `
                     <tr class="hover:bg-gray-800">
                         <td class="px-4 py-2 whitespace-nowrap text-sm font-medium text-white">
@@ -290,20 +333,22 @@
             });
             showNoResults(false);
             showTable('skaters', true);
+            renderPagination(totalItems);
         }
         
         function renderGoalies() {
-            const goalies = filterAndSort(allGoalies);
+            const { paginatedItems, totalItems } = getPaginatedData(allGoalies);
             const tableBody = document.getElementById('goalies-table-body');
             tableBody.innerHTML = '';
             
-            if(goalies.length === 0) {
+            if(totalItems === 0) {
                 showNoResults(true);
                 showTable('goalies', false);
+                showPagination(false);
                 return;
             }
             
-            goalies.forEach(player => {
+            paginatedItems.forEach(player => {
                 const row = `
                     <tr class="hover:bg-gray-800">
                          <td class="px-4 py-2 whitespace-nowrap text-sm font-medium text-white">
@@ -327,7 +372,26 @@
             });
             showNoResults(false);
             showTable('goalies', true);
+            renderPagination(totalItems);
         }
+
+        function renderPagination(totalItems) {
+            const totalPages = Math.ceil(totalItems / rowsPerPage);
+            const pageInfo = document.getElementById('page-info');
+            const prevBtn = document.getElementById('prev-page-btn');
+            const nextBtn = document.getElementById('next-page-btn');
+
+            if (totalPages <= 1) {
+                showPagination(false);
+                return;
+            }
+
+            pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+            prevBtn.disabled = currentPage === 1;
+            nextBtn.disabled = currentPage === totalPages;
+            showPagination(true);
+        }
+
 
         function handleSort(e) {
             const key = e.target.dataset.sort;
@@ -339,6 +403,12 @@
                 currentSort.key = key;
                 currentSort.direction = 'desc';
             }
+            currentPage = 1;
+            renderView();
+        }
+        
+        function handleSearch() {
+            currentPage = 1;
             renderView();
         }
 
@@ -347,15 +417,17 @@
         const showError = (show) => document.getElementById('error-container').style.display = show ? 'flex' : 'none';
         const showNoResults = (show) => document.getElementById('no-results').style.display = show ? 'flex' : 'none';
         const showTable = (type, show) => document.getElementById(`${type}-table`).style.display = show ? 'table' : 'none';
+        const showPagination = (show) => document.getElementById('pagination-controls').style.display = show ? 'flex' : 'none';
 
 
         // --- Event Listeners ---
         seasonSelect.addEventListener('change', (e) => fetchData(e.target.value));
-        searchInput.addEventListener('input', () => renderView());
+        searchInput.addEventListener('input', handleSearch);
         
         skatersTab.addEventListener('click', () => {
             currentView = 'skaters';
             currentSort = { key: 'points', direction: 'desc' };
+            currentPage = 1;
             skatersTab.classList.add('active');
             goaliesTab.classList.remove('active');
             renderView();
@@ -364,6 +436,7 @@
         goaliesTab.addEventListener('click', () => {
             currentView = 'goalies';
             currentSort = { key: 'savePercentage', direction: 'desc' };
+            currentPage = 1;
             goaliesTab.classList.add('active');
             skatersTab.classList.remove('active');
             renderView();
@@ -371,6 +444,21 @@
         
         document.getElementById('skaters-table').querySelector('thead').addEventListener('click', handleSort);
         document.getElementById('goalies-table').querySelector('thead').addEventListener('click', handleSort);
+        document.getElementById('prev-page-btn').addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                renderView();
+            }
+        });
+        document.getElementById('next-page-btn').addEventListener('click', () => {
+             const data = currentView === 'skaters' ? allSkaters : allGoalies;
+             const totalPages = Math.ceil(filterAndSort(data).length / rowsPerPage);
+             if (currentPage < totalPages) {
+                currentPage++;
+                renderView();
+             }
+        });
+
 
         // --- Initial Load ---
         populateSeasons();
