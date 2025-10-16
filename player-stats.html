@@ -68,6 +68,27 @@
             opacity: 0.5;
             cursor: not-allowed;
         }
+        .leader-card {
+            background-color: #111;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 16px;
+        }
+        .leader-list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            font-size: 14px;
+            border-bottom: 1px solid #222;
+        }
+        .leader-list-item:last-child {
+            border-bottom: none;
+        }
+        .leader-stat-value {
+            font-weight: 600;
+            color: #FFD700; /* Gold */
+        }
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
@@ -106,6 +127,11 @@
                     </select>
                     <input id="search-input" type="text" placeholder="Search players..." class="form-select rounded-md px-3 py-2 text-sm w-48">
                 </div>
+            </div>
+
+            <!-- Stat Leaders Section -->
+            <div id="leaderboards-container" class="mb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Leader cards will be injected here -->
             </div>
             
             <!-- Tabs -->
@@ -228,6 +254,7 @@
             showTable('goalies', false);
             showNoResults(false);
             showPagination(false);
+            document.getElementById('leaderboards-container').innerHTML = '';
             currentPage = 1;
 
             try {
@@ -243,6 +270,7 @@
                 allSkaters = await skatersResponse.json();
                 allGoalies = await goaliesResponse.json();
                 
+                renderLeaderboards(allSkaters);
                 renderView();
             } catch (error) {
                 console.error('Error fetching stats:', error);
@@ -252,6 +280,53 @@
             }
         }
         
+        function renderLeaderboards(skaters) {
+            const container = document.getElementById('leaderboards-container');
+            container.innerHTML = ''; // Clear previous leaderboards
+
+            const categories = [
+                { key: 'goals', title: 'Goal Leaders' },
+                { key: 'assists', title: 'Assist Leaders' },
+                { key: 'hits', title: 'Hit Leaders' },
+                { key: 'blockedShots', title: 'Block Leaders' },
+                { key: 'penaltyMinutes', title: 'PIM Leaders' },
+                { key: 'plusMinus', title: '+/- Leaders' }
+            ];
+
+            categories.forEach(cat => {
+                const sortedSkaters = [...skaters].sort((a, b) => {
+                    const valA = cat.key === 'penaltyMinutes' ? parseInt(a[cat.key]) : a[cat.key];
+                    const valB = cat.key === 'penaltyMinutes' ? parseInt(b[cat.key]) : b[cat.key];
+                    return valB - valA;
+                });
+
+                const top10 = sortedSkaters.slice(0, 10);
+
+                let listItemsHTML = '';
+                top10.forEach(player => {
+                    const headshotUrl = `https://assets.nhle.com/mugs/nhl/latest/${player.id}.png`;
+                    listItemsHTML += `
+                        <li class="leader-list-item">
+                            <div class="flex items-center truncate">
+                                <img class="h-6 w-6 rounded-full object-cover mr-3 flex-shrink-0" src="${headshotUrl}" onerror="this.src='https://placehold.co/100x100/111111/FFFFFF?text=?';" alt="${player.name}">
+                                <span class="truncate">${player.name} <span class="text-xs text-gray-400">${player.team}</span></span>
+                            </div>
+                            <span class="leader-stat-value ml-2">${player[cat.key]}</span>
+                        </li>`;
+                });
+
+                const cardHTML = `
+                    <div class="leader-card">
+                        <h3 class="text-lg font-semibold text-white mb-3">${cat.title}</h3>
+                        <ul class="space-y-1">
+                            ${listItemsHTML}
+                        </ul>
+                    </div>`;
+                
+                container.innerHTML += cardHTML;
+            });
+        }
+
         function renderView() {
             if(currentView === 'skaters') {
                 showTable('goalies', false);
@@ -306,7 +381,6 @@
             }
             
             paginatedItems.forEach(player => {
-                // **FIX**: Construct a more reliable headshot URL directly in the rendering logic.
                 const headshotUrl = `https://assets.nhle.com/mugs/nhl/latest/${player.id}.png`;
                 const row = `
                     <tr class="hover:bg-gray-800">
@@ -351,7 +425,6 @@
             }
             
             paginatedItems.forEach(player => {
-                // **FIX**: Construct a more reliable headshot URL directly in the rendering logic.
                 const headshotUrl = `https://assets.nhle.com/mugs/nhl/latest/${player.id}.png`;
                 const row = `
                     <tr class="hover:bg-gray-800">
