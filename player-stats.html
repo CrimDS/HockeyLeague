@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Player Stats - Fox & Hounds Hockey League</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -106,16 +106,17 @@
         <header class="bg-black/70 backdrop-blur-sm sticky top-0 z-10 header-glow">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex items-center justify-between h-16">
-                    <div class="flex items-center space-x-3">
-                       <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                           <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM5.5 9.5a.5.5 0 01.5-.5h2a.5.5 0 01.5.5v2a.5.5 0 01-.5.5h-2a.5.5 0 01-.5-.5v-2zM12 5.5a.5.5 0 00-.5.5v2a.5.5 0 00.5.5h2a.5.5 0 00.5-.5v-2a.5.5 0 00-.5-.5h-2zM6 12a.5.5 0 00-.5.5v2a.5.5 0 00.5.5h2a.5.5 0 00.5-.5v-2a.5.5 0 00-.5-.5H6zM11.5 12a.5.5 0 01.5-.5h2a.5.5 0 01.5.5v2a.5.5 0 01-.5.5h-2a.5.5 0 01-.5-.5v-2z" clip-rule="evenodd" />
-                        </svg>
-                        <h1 class="text-2xl font-bold text-white">Fox & Hounds Hockey League</h1>
-                    </div>
-                    <nav class="flex items-center space-x-6">
-                        <a href="index.html" class="nav-link py-5">League Home</a>
-                        <a href="player-stats.html" class="nav-link active py-5">Player Stats</a>
+                    <a href="index.html" class="flex items-center space-x-3">
+                       <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-yellow-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM5.5 9.5a.5.5 0 01.5-.5h2a.5.5 0 01.5.5v2a.5.5 0 01-.5.5h-2a.5.5 0 01-.5-.5v-2zM12 5.5a.5.5 0 00-.5.5v2a.5.5 0 00.5.5h2a.5.5 0 00.5-.5v-2a.5.5 0 00-.5-.5h-2zM6 12a.5.5 0 00-.5.5v2a.5.5 0 00.5.5h2a.5.5 0 00.5-.5v-2a.5.5 0 00-.5-.5H6zM11.5 12a.5.5 0 01.5-.5h2a.5.5 0 01.5.5v2a.5.5 0 01-.5.5h-2a.5.5 0 01-.5-.5v-2z" clip-rule="evenodd" /></svg>
+                        <h1 class="text-lg sm:text-xl font-bold text-white">Fox & Hounds</h1>
+                    </a>
+                    <nav class="hidden md:flex items-center space-x-6">
+                        <a href="index.html" class="font-semibold text-gray-400 hover:text-white">League Home</a>
+                        <a href="player-stats.html" class="font-semibold text-white">Player Stats</a>
                     </nav>
+                    <div class="flex items-center space-x-4">
+                         <a href="admin.html" class="admin-btn">Admin Panel</a>
+                    </div>
                 </div>
             </div>
         </header>
@@ -123,19 +124,15 @@
         <!-- Main Content -->
         <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10">
             <div class="flex flex-col md:flex-row justify-between md:items-center mb-6">
-                <h2 class="text-3xl font-semibold text-white mb-4 md:mb-0">NHL Player Statistics</h2>
+                <h2 class="text-2xl sm:text-3xl font-semibold text-white mb-4 md:mb-0">NHL Player Statistics</h2>
                 <div class="flex items-center space-x-4">
-                    <select id="season-select" class="form-select rounded-md px-3 py-2 text-sm font-medium">
-                        <!-- Seasons will be populated here -->
-                    </select>
+                    <select id="season-select" class="form-select rounded-md px-3 py-2 text-sm font-medium"></select>
                     <input id="search-input" type="text" placeholder="Search players..." class="form-select rounded-md px-3 py-2 text-sm w-48">
                 </div>
             </div>
 
             <!-- Stat Leaders Section -->
-            <div id="leaderboards-container" class="mb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- Leader cards will be injected here -->
-            </div>
+            <div id="leaderboards-container" class="mb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
             
             <!-- Tabs -->
             <div class="mb-4 border-b border-gray-800">
@@ -147,9 +144,7 @@
 
             <!-- Stats Table Container -->
             <div id="stats-container" class="overflow-x-auto bg-[#111] border border-gray-800 rounded-lg">
-                <div id="loader-container" class="min-h-[600px] flex items-center justify-center">
-                    <div class="loader"></div>
-                </div>
+                <div id="loader-container" class="min-h-[600px] flex items-center justify-center"><div class="loader"></div></div>
                 <div id="error-container" class="min-h-[600px] hidden items-center justify-center flex-col text-center">
                     <p class="text-lg font-semibold text-red-500">Could not load player stats.</p>
                     <p class="text-gray-400 mt-1">Please try again later.</p>
@@ -174,9 +169,7 @@
                             <th class="py-3.5 px-3 text-left text-sm font-semibold text-white table-header-cell" data-sort="timeOnIce">TOI</th>
                         </tr>
                     </thead>
-                    <tbody id="skaters-table-body" class="divide-y divide-gray-800">
-                        <!-- Skater rows will be injected here -->
-                    </tbody>
+                    <tbody id="skaters-table-body" class="divide-y divide-gray-800"></tbody>
                 </table>
                 
                 <!-- Goalies Table -->
@@ -195,9 +188,7 @@
                             <th class="py-3.5 px-3 text-left text-sm font-semibold text-white table-header-cell" data-sort="shutouts">SO</th>
                         </tr>
                     </thead>
-                    <tbody id="goalies-table-body" class="divide-y divide-gray-800">
-                        <!-- Goalie rows will be injected here -->
-                    </tbody>
+                    <tbody id="goalies-table-body" class="divide-y divide-gray-800"></tbody>
                 </table>
 
                  <div id="no-results" class="min-h-[600px] hidden items-center justify-center flex-col text-center">
@@ -228,7 +219,6 @@
         let currentSort = { key: 'points', direction: 'desc' };
         let currentView = 'skaters';
         
-        // Pagination state
         let currentPage = 1;
         const rowsPerPage = 50;
 
@@ -236,11 +226,7 @@
             const now = new Date();
             let currentYear = now.getFullYear();
             const currentMonth = now.getMonth();
-
-            if (currentMonth < 9) { 
-                currentYear--;
-            }
-            
+            if (currentMonth < 9) { currentYear--; }
             for (let i = 0; i < 4; i++) {
                 const year = currentYear - i;
                 const seasonId = `${year}${year + 1}`;
@@ -253,28 +239,17 @@
         }
 
         async function fetchData(season) {
-            showLoader(true);
-            showError(false);
-            showTable('skaters', false);
-            showTable('goalies', false);
-            showNoResults(false);
-            showPagination(false);
+            showLoader(true); showError(false); showTable('skaters', false); showTable('goalies', false); showNoResults(false); showPagination(false);
             document.getElementById('leaderboards-container').innerHTML = '';
             currentPage = 1;
-
             try {
                 const [skatersResponse, goaliesResponse] = await Promise.all([
                     fetch(`/api/nhl-player-stats?season=${season}`),
                     fetch(`/api/nhl-goalie-stats?season=${season}`)
                 ]);
-
-                if (!skatersResponse.ok || !goaliesResponse.ok) {
-                    throw new Error('Failed to fetch player stats');
-                }
-
+                if (!skatersResponse.ok || !goaliesResponse.ok) throw new Error('Failed to fetch player stats');
                 allSkaters = await skatersResponse.json();
                 allGoalies = await goaliesResponse.json();
-                
                 renderLeaderboards(allSkaters);
                 renderView();
             } catch (error) {
@@ -287,266 +262,86 @@
         
         function renderLeaderboards(skaters) {
             const container = document.getElementById('leaderboards-container');
-            container.innerHTML = ''; // Clear previous leaderboards
-
-            const categories = [
-                { key: 'goals', title: 'Goal Leaders' },
-                { key: 'assists', title: 'Assist Leaders' },
-                { key: 'hits', title: 'Hit Leaders' },
-                { key: 'blockedShots', title: 'Block Leaders' },
-                { key: 'penaltyMinutes', title: 'PIM Leaders' },
-                { key: 'plusMinus', title: '+/- Leaders' }
-            ];
-
+            container.innerHTML = '';
+            const categories = [ { key: 'goals', title: 'Goal Leaders' }, { key: 'assists', title: 'Assist Leaders' }, { key: 'hits', title: 'Hit Leaders' }, { key: 'blockedShots', title: 'Block Leaders' }, { key: 'penaltyMinutes', title: 'PIM Leaders' }, { key: 'plusMinus', title: '+/- Leaders' } ];
             categories.forEach(cat => {
-                const sortedSkaters = [...skaters].sort((a, b) => {
-                    const valA = cat.key === 'penaltyMinutes' ? parseInt(a[cat.key]) : a[cat.key];
-                    const valB = cat.key === 'penaltyMinutes' ? parseInt(b[cat.key]) : b[cat.key];
-                    return valB - valA;
-                });
-
+                const sortedSkaters = [...skaters].sort((a, b) => { const valA = cat.key === 'penaltyMinutes' ? parseInt(a[cat.key]) : a[cat.key]; const valB = cat.key === 'penaltyMinutes' ? parseInt(b[cat.key]) : b[cat.key]; return valB - valA; });
                 const top10 = sortedSkaters.slice(0, 10);
-
                 let listItemsHTML = '';
                 top10.forEach(player => {
                     const headshotUrl = `https://assets.nhle.com/mugs/nhl/latest/${player.id}.png`;
-                    listItemsHTML += `
-                        <li class="leader-list-item">
-                            <div class="flex items-center truncate">
-                                <img class="h-6 w-6 rounded-full object-cover mr-3 flex-shrink-0" src="${headshotUrl}" onerror="this.src='https://placehold.co/100x100/111111/FFFFFF?text=?';" alt="${player.name}">
-                                <span class="truncate">${player.name} <span class="text-xs text-gray-400">${player.team}</span></span>
-                            </div>
-                            <span class="leader-stat-value ml-2">${player[cat.key]}</span>
-                        </li>`;
+                    listItemsHTML += `<li class="leader-list-item"><div class="flex items-center truncate"><img class="h-6 w-6 rounded-full object-cover mr-3 flex-shrink-0" src="${headshotUrl}" onerror="this.src='https://placehold.co/100x100/111111/FFFFFF?text=?';" alt="${player.name}"><span class="truncate">${player.name} <span class="text-xs text-gray-400">${player.team}</span></span></div><span class="leader-stat-value ml-2">${player[cat.key]}</span></li>`;
                 });
-
-                const cardHTML = `
-                    <div class="leader-card">
-                        <h3 class="text-lg font-semibold text-white mb-3">${cat.title}</h3>
-                        <ul class="space-y-1">
-                            ${listItemsHTML}
-                        </ul>
-                    </div>`;
-                
-                container.innerHTML += cardHTML;
+                container.innerHTML += `<div class="leader-card"><h3 class="text-lg font-semibold text-white mb-3">${cat.title}</h3><ul class="space-y-1">${listItemsHTML}</ul></div>`;
             });
         }
 
-        function renderView() {
-            if(currentView === 'skaters') {
-                showTable('goalies', false);
-                renderSkaters();
-            } else {
-                showTable('skaters', false);
-                renderGoalies();
-            }
-        }
+        function renderView() { if(currentView === 'skaters') { showTable('goalies', false); renderSkaters(); } else { showTable('skaters', false); renderGoalies(); } }
 
         function getPaginatedData(data) {
-             const sorted = [...data].sort((a, b) => {
-                const valA = a[currentSort.key];
-                const valB = b[currentSort.key];
-
-                if (currentSort.key === 'timeOnIce') {
-                     const timeA = (valA.split(':')[0] * 60) + parseInt(valA.split(':')[1]);
-                     const timeB = (valB.split(':')[0] * 60) + parseInt(valB.split(':')[1]);
-                     if (currentSort.direction === 'asc') return timeA - timeB;
-                     return timeB - timeA;
-                }
-
-                if (currentSort.direction === 'asc') {
-                    return valA > valB ? 1 : -1;
-                } else {
-                    return valA < valB ? 1 : -1;
-                }
-             });
-             
+             const sorted = [...data].sort((a, b) => { const valA = a[currentSort.key]; const valB = b[currentSort.key]; if (currentSort.key === 'timeOnIce') { const timeA = (valA.split(':')[0] * 60) + parseInt(valA.split(':')[1]); const timeB = (valB.split(':')[0] * 60) + parseInt(valB.split(':')[1]); if (currentSort.direction === 'asc') return timeA - timeB; return timeB - timeA; } if (currentSort.direction === 'asc') return valA > valB ? 1 : -1; return valA < valB ? 1 : -1; });
              sorted.forEach((p, index) => p.rank = index + 1);
-
              const query = searchInput.value.toLowerCase();
              const filtered = sorted.filter(p => p.name.toLowerCase().includes(query));
-
             const start = (currentPage - 1) * rowsPerPage;
             const end = start + rowsPerPage;
-            
-            return {
-                paginatedItems: filtered.slice(start, end),
-                totalItems: filtered.length
-            };
+            return { paginatedItems: filtered.slice(start, end), totalItems: filtered.length };
         }
         
         function renderSkaters() {
             const { paginatedItems, totalItems } = getPaginatedData(allSkaters);
             const tableBody = document.getElementById('skaters-table-body');
             tableBody.innerHTML = '';
-            
-            if(totalItems === 0) {
-                showNoResults(true);
-                showTable('skaters', false);
-                showPagination(false);
-                return;
-            }
-            
+            if(totalItems === 0) { showNoResults(true); showTable('skaters', false); showPagination(false); return; }
             paginatedItems.forEach(player => {
                 const headshotUrl = `https://assets.nhle.com/mugs/nhl/latest/${player.id}.png`;
-                const row = `
-                    <tr class="hover:bg-gray-800 clickable-row" onclick="window.location.href='player-profile.html?id=${player.id}'">
-                        <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-400">${player.rank}</td>
-                        <td class="px-4 py-2 whitespace-nowrap text-sm font-medium text-white">
-                            <div class="flex items-center">
-                                <img class="h-8 w-8 rounded-full object-cover" src="${headshotUrl}" onerror="this.src='https://placehold.co/100x100/111111/FFFFFF?text=?';" alt="${player.name}">
-                                <div class="ml-3">
-                                    <div>${player.name}</div>
-                                    <div class="text-xs text-gray-400">${player.position}</div>
-                                </div>
-                            </div>
-                        </td>
-                        <td class="px-3 py-2 whitespace-nowrap text-sm">${player.team}</td>
-                        <td class="px-3 py-2 whitespace-nowrap text-sm">${player.gamesPlayed}</td>
-                        <td class="px-3 py-2 whitespace-nowrap text-sm">${player.goals}</td>
-                        <td class="px-3 py-2 whitespace-nowrap text-sm">${player.assists}</td>
-                        <td class="px-3 py-2 whitespace-nowrap text-sm font-bold text-yellow-400">${player.points}</td>
-                        <td class="px-3 py-2 whitespace-nowrap text-sm">${player.plusMinus}</td>
-                        <td class="px-3 py-2 whitespace-nowrap text-sm">${player.penaltyMinutes}</td>
-                        <td class="px-3 py-2 whitespace-nowrap text-sm">${player.powerPlayGoals}</td>
-                        <td class="px-3 py-2 whitespace-nowrap text-sm">${player.hits}</td>
-                        <td class="px-3 py-2 whitespace-nowrap text-sm">${player.blockedShots}</td>
-                        <td class="px-3 py-2 whitespace-nowrap text-sm">${player.timeOnIce}</td>
-                    </tr>`;
+                const row = `<tr class="hover:bg-gray-800 clickable-row" onclick="window.location.href='player-profile.html?id=${player.id}'"><td class="px-3 py-2 whitespace-nowrap text-sm text-gray-400">${player.rank}</td><td class="px-4 py-2 whitespace-nowrap text-sm font-medium text-white"><div class="flex items-center"><img class="h-8 w-8 rounded-full object-cover" src="${headshotUrl}" onerror="this.src='https://placehold.co/100x100/111111/FFFFFF?text=?';" alt="${player.name}"><div class="ml-3"><div>${player.name}</div><div class="text-xs text-gray-400">${player.position}</div></div></div></td><td class="px-3 py-2 whitespace-nowrap text-sm">${player.team}</td><td class="px-3 py-2 whitespace-nowrap text-sm">${player.gamesPlayed}</td><td class="px-3 py-2 whitespace-nowrap text-sm">${player.goals}</td><td class="px-3 py-2 whitespace-nowrap text-sm">${player.assists}</td><td class="px-3 py-2 whitespace-nowrap text-sm font-bold text-yellow-400">${player.points}</td><td class="px-3 py-2 whitespace-nowrap text-sm">${player.plusMinus}</td><td class="px-3 py-2 whitespace-nowrap text-sm">${player.penaltyMinutes}</td><td class="px-3 py-2 whitespace-nowrap text-sm">${player.powerPlayGoals}</td><td class="px-3 py-2 whitespace-nowrap text-sm">${player.hits}</td><td class="px-3 py-2 whitespace-nowrap text-sm">${player.blockedShots}</td><td class="px-3 py-2 whitespace-nowrap text-sm">${player.timeOnIce}</td></tr>`;
                 tableBody.innerHTML += row;
             });
-            showNoResults(false);
-            showTable('skaters', true);
-            renderPagination(totalItems);
+            showNoResults(false); showTable('skaters', true); renderPagination(totalItems);
         }
         
         function renderGoalies() {
             const { paginatedItems, totalItems } = getPaginatedData(allGoalies);
             const tableBody = document.getElementById('goalies-table-body');
             tableBody.innerHTML = '';
-            
-            if(totalItems === 0) {
-                showNoResults(true);
-                showTable('goalies', false);
-                showPagination(false);
-                return;
-            }
-            
+            if(totalItems === 0) { showNoResults(true); showTable('goalies', false); showPagination(false); return; }
             paginatedItems.forEach(player => {
                 const headshotUrl = `https://assets.nhle.com/mugs/nhl/latest/${player.id}.png`;
-                const row = `
-                    <tr class="hover:bg-gray-800 clickable-row" onclick="window.location.href='player-profile.html?id=${player.id}'">
-                         <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-400">${player.rank}</td>
-                         <td class="px-4 py-2 whitespace-nowrap text-sm font-medium text-white">
-                            <div class="flex items-center">
-                                <img class="h-8 w-8 rounded-full object-cover" src="${headshotUrl}" onerror="this.src='https://placehold.co/100x100/111111/FFFFFF?text=?';" alt="${player.name}">
-                                <div class="ml-3">
-                                    <div>${player.name}</div>
-                                </div>
-                            </div>
-                        </td>
-                        <td class="px-3 py-2 whitespace-nowrap text-sm">${player.team}</td>
-                        <td class="px-3 py-2 whitespace-nowrap text-sm">${player.gamesPlayed}</td>
-                        <td class="px-3 py-2 whitespace-nowrap text-sm">${player.wins}</td>
-                        <td class="px-3 py-2 whitespace-nowrap text-sm">${player.losses}</td>
-                        <td class="px-3 py-2 whitespace-nowrap text-sm">${player.otLosses}</td>
-                        <td class="px-3 py-2 whitespace-nowrap text-sm font-bold text-yellow-400">${player.savePercentage.toFixed(3)}</td>
-                        <td class="px-3 py-2 whitespace-nowrap text-sm">${player.goalsAgainstAverage.toFixed(2)}</td>
-                        <td class="px-3 py-2 whitespace-nowrap text-sm">${player.shutouts}</td>
-                    </tr>`;
+                const row = `<tr class="hover:bg-gray-800 clickable-row" onclick="window.location.href='player-profile.html?id=${player.id}'"><td class="px-3 py-2 whitespace-nowrap text-sm text-gray-400">${player.rank}</td><td class="px-4 py-2 whitespace-nowrap text-sm font-medium text-white"><div class="flex items-center"><img class="h-8 w-8 rounded-full object-cover" src="${headshotUrl}" onerror="this.src='https://placehold.co/100x100/111111/FFFFFF?text=?';" alt="${player.name}"><div class="ml-3"><div>${player.name}</div></div></div></td><td class="px-3 py-2 whitespace-nowrap text-sm">${player.team}</td><td class="px-3 py-2 whitespace-nowrap text-sm">${player.gamesPlayed}</td><td class="px-3 py-2 whitespace-nowrap text-sm">${player.wins}</td><td class="px-3 py-2 whitespace-nowrap text-sm">${player.losses}</td><td class="px-3 py-2 whitespace-nowrap text-sm">${player.otLosses}</td><td class="px-3 py-2 whitespace-nowrap text-sm font-bold text-yellow-400">${player.savePercentage.toFixed(3)}</td><td class="px-3 py-2 whitespace-nowrap text-sm">${player.goalsAgainstAverage.toFixed(2)}</td><td class="px-3 py-2 whitespace-nowrap text-sm">${player.shutouts}</td></tr>`;
                 tableBody.innerHTML += row;
             });
-            showNoResults(false);
-            showTable('goalies', true);
-            renderPagination(totalItems);
+            showNoResults(false); showTable('goalies', true); renderPagination(totalItems);
         }
 
         function renderPagination(totalItems) {
             const totalPages = Math.ceil(totalItems / rowsPerPage);
-            const pageInfo = document.getElementById('page-info');
-            const prevBtn = document.getElementById('prev-page-btn');
-            const nextBtn = document.getElementById('next-page-btn');
-
-            if (totalPages <= 1) {
-                showPagination(false);
-                return;
-            }
-
+            const pageInfo = document.getElementById('page-info'); const prevBtn = document.getElementById('prev-page-btn'); const nextBtn = document.getElementById('next-page-btn');
+            if (totalPages <= 1) { showPagination(false); return; }
             pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
             prevBtn.disabled = currentPage === 1;
             nextBtn.disabled = currentPage === totalPages;
             showPagination(true);
         }
 
+        function handleSort(e) { const key = e.target.dataset.sort; if (!key) return; if (currentSort.key === key) { currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc'; } else { currentSort.key = key; currentSort.direction = 'desc'; } currentPage = 1; renderView(); }
+        function handleSearch() { currentPage = 1; renderView(); }
 
-        function handleSort(e) {
-            const key = e.target.dataset.sort;
-            if (!key) return;
-
-            if (currentSort.key === key) {
-                currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
-            } else {
-                currentSort.key = key;
-                currentSort.direction = 'desc';
-            }
-            currentPage = 1;
-            renderView();
-        }
-        
-        function handleSearch() {
-            currentPage = 1;
-            renderView();
-        }
-
-        // --- UI State Changers ---
         const showLoader = (show) => document.getElementById('loader-container').style.display = show ? 'flex' : 'none';
         const showError = (show) => document.getElementById('error-container').style.display = show ? 'flex' : 'none';
         const showNoResults = (show) => document.getElementById('no-results').style.display = show ? 'flex' : 'none';
         const showTable = (type, show) => document.getElementById(`${type}-table`).style.display = show ? 'table' : 'none';
         const showPagination = (show) => document.getElementById('pagination-controls').style.display = show ? 'flex' : 'none';
 
-
-        // --- Event Listeners ---
         seasonSelect.addEventListener('change', (e) => fetchData(e.target.value));
         searchInput.addEventListener('input', handleSearch);
-        
-        skatersTab.addEventListener('click', () => {
-            currentView = 'skaters';
-            currentSort = { key: 'points', direction: 'desc' };
-            currentPage = 1;
-            skatersTab.classList.add('active');
-            goaliesTab.classList.remove('active');
-            renderView();
-        });
-
-        goaliesTab.addEventListener('click', () => {
-            currentView = 'goalies';
-            currentSort = { key: 'savePercentage', direction: 'desc' };
-            currentPage = 1;
-            goaliesTab.classList.add('active');
-            skatersTab.classList.remove('active');
-            renderView();
-        });
-        
+        skatersTab.addEventListener('click', () => { currentView = 'skaters'; currentSort = { key: 'points', direction: 'desc' }; currentPage = 1; skatersTab.classList.add('active'); goaliesTab.classList.remove('active'); renderView(); });
+        goaliesTab.addEventListener('click', () => { currentView = 'goalies'; currentSort = { key: 'savePercentage', direction: 'desc' }; currentPage = 1; goaliesTab.classList.add('active'); skatersTab.classList.remove('active'); renderView(); });
         document.getElementById('skaters-table').querySelector('thead').addEventListener('click', handleSort);
         document.getElementById('goalies-table').querySelector('thead').addEventListener('click', handleSort);
-        document.getElementById('prev-page-btn').addEventListener('click', () => {
-            if (currentPage > 1) {
-                currentPage--;
-                renderView();
-            }
-        });
-        document.getElementById('next-page-btn').addEventListener('click', () => {
-             const data = currentView === 'skaters' ? allSkaters : allGoalies;
-             const totalPages = Math.ceil(getPaginatedData(data).totalItems / rowsPerPage);
-             if (currentPage < totalPages) {
-                currentPage++;
-                renderView();
-             }
-        });
+        document.getElementById('prev-page-btn').addEventListener('click', () => { if (currentPage > 1) { currentPage--; renderView(); } });
+        document.getElementById('next-page-btn').addEventListener('click', () => { const data = currentView === 'skaters' ? allSkaters : allGoalies; const totalPages = Math.ceil(getPaginatedData(data).totalItems / rowsPerPage); if (currentPage < totalPages) { currentPage++; renderView(); } });
 
-
-        // --- Initial Load ---
         populateSeasons();
         fetchData(seasonSelect.value);
     });
