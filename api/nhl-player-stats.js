@@ -1,6 +1,6 @@
 // api/nhl-player-stats.js
 
-// [V12] Corrected Time On Ice to use per-game average.
+// [V14] Implemented a hybrid approach, using /summary for core stats and enriching with /realtime for banger stats.
 export default async function handler(req, res) {
     // 1. Determine the season to fetch
     const { season } = req.query;
@@ -14,71 +14,89 @@ export default async function handler(req, res) {
     
     const seasonId = season || currentSeasonId;
 
-    // 2. Construct URLs for the correct bulk data endpoints (`limit=-1`)
+    // 2. Construct URLs for both the summary and realtime endpoints
     const baseUrl = `https://api.nhle.com/stats/rest/en/skater`;
-    const commonParams = `isAggregate=false&isGame=false&limit=-1&cayenneExp=seasonId=${seasonId} and gameTypeId=2 and gamesPlayed>=1`;
-
-    const summaryUrl = `${baseUrl}/summary?sort=[{"property":"points","direction":"DESC"}]&${commonParams}`;
-
-
+    const commonParams = `isAggregate=false&isGame=false&limit=-1&sort=[{"property":"points","direction":"DESC"}]&cayenneExp=seasonId=${seasonId} and gameTypeId=2 and gamesPlayed>=1`;
+    
+    const summaryUrl = `${baseUrl}/summary?${commonParams}`;
+    const realtimeUrl = `${baseUrl}/realtime?${commonParams}`;
 
     try {
-        console.log(`[V12] Fetching bulk data for season ${seasonId}...`);
+        console.log(`[V14] Fetching summary and realtime data for season ${seasonId}...`);
         
-        // Fetch all four data sources simultaneously for efficiency
-        const [summaryRes] = await Promise.all([
+        const [summaryRes, realtimeRes] = await Promise.all([
             fetch(summaryUrl),
+            fetch(realtimeUrl)
         ]);
 
         if (!summaryRes.ok) {
-            console.error(`[V12] Summary API failed with status: ${summaryRes.status}`);
+            console.error(`[V14] Summary API failed with status: ${summaryRes.status}`);
             throw new Error(`The main player stats endpoint failed to respond.`);
         }
 
         const summaryData = await summaryRes.json();
         
         if (!summaryData || !Array.isArray(summaryData.data)) {
-            console.warn("[V12] Main stats API did not return valid data. Returning empty.");
+            console.warn("[V14] Main summary API did not return valid data. Returning empty.");
             return res.status(200).json([]);
         }
 
-        // 3. Comprehensive Data Merging
-        const playerStats = new Map();
+        // 3. Create a lookup map for banger stats from the realtime data
+        const realtimeStatsMap = new Map();
+        if (realtimeRes.ok) {
+            const realtimeData = await realtimeRes.json();
+            if (realtimeData && Array.isArray(realtimeData.data)) {
+                realtimeData.data.forEach(player => {
+                    if (player && player.playerId) {
+                        realtimeStatsMap.set(player.playerId, {
+                            hits: player.hits ?? 0,
+                            blockedShots: player.blockedShots ?? 0,
+                            timeOnIce: player.timeOnIcePerGame ?? '0:00',
+                        });
+                    }
+                });
+            }
+        } else {
+            console.warn(`[V14] Realtime API failed with status ${realtimeRes.status}. Banger stats may be missing.`);
+        }
 
-        // Step 1: Build the master player list from the summary data.
-        summaryData.data.forEach(player => {
-            if (!player || !player.playerId) return;
+
+        // 4. Build the final list from the summary data, enriching it with realtime stats
+        const consolidatedStats = summaryData.data.map(player => {
+            if (!player || !player.playerId) return null;
 
             let headshotUrl = 'https://placehold.co/100x100/111111/FFFFFF?text=?';
             if (player.teamAbbrevs && player.playerId) {
                 headshotUrl = `https://assets.nhle.com/mugs/nhl/latest/${player.teamAbbrevs}/${player.playerId}.png`;
             }
-            playerStats.set(player.playerId, {
+            
+            const realtimeStats = realtimeStatsMap.get(player.playerId) || { hits: 0, blockedShots: 0, timeOnIce: '0:00' };
+
+            return {
                 id: player.playerId,
                 name: player.skaterFullName,
                 headshot: headshotUrl,
                 team: player.teamAbbrevs || 'N/A',
                 position: player.positionCode,
-                gamesPlayed: player.gamesPlayed,
-                goals: player.goals,
-                assists: player.assists,
-                points: player.points,
-                plusMinus: player.plusMinus,
-                penaltyMinutes: String(player.penaltyMinutes),
-                powerPlayGoals: player.ppGoals,
-                hits: 0, 
-                blockedShots: 0,
-                timeOnIce: '0:00',
-            });
-        });
+                gamesPlayed: player.gamesPlayed ?? 0,
+                goals: player.goals ?? 0,
+                assists: player.assists ?? 0,
+                points: player.points ?? 0,
+                plusMinus: player.plusMinus ?? 0,
+                penaltyMinutes: String(player.penaltyMinutes ?? 0),
+                powerPlayGoals: player.ppGoals ?? 0,
+                // Get banger stats from the enriched data
+                hits: realtimeStats.hits,
+                blockedShots: realtimeStats.blockedShots,
+                timeOnIce: realtimeStats.timeOnIce,
+            };
+        }).filter(Boolean); // Filter out any null entries
 
-        const consolidatedStats = Array.from(playerStats.values());
-
-        console.log(`[V12] Processing complete. Consolidated stats for ${consolidatedStats.length} players.`);
+        console.log(`[V14] Processing complete. Consolidated stats for ${consolidatedStats.length} players.`);
         res.status(200).json(consolidatedStats);
 
     } catch (error) {
-        console.error("[V12] Critical error in nhl-player-stats function:", error.message);
+        console.error("[V14] Critical error in nhl-player-stats function:", error.message);
         res.status(500).json({ error: "Could not fetch player statistics.", details: error.message });
     }
 }
