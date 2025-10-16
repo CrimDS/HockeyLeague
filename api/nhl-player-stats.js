@@ -1,6 +1,6 @@
 // api/nhl-player-stats.js
 
-// [V11] Added Time On Ice stat fetching and merging.
+// [V12] Corrected Time On Ice to use per-game average.
 export default async function handler(req, res) {
     // 1. Determine the season to fetch
     const { season } = req.query;
@@ -25,7 +25,7 @@ export default async function handler(req, res) {
 
 
     try {
-        console.log(`[V11] Fetching bulk data for season ${seasonId}...`);
+        console.log(`[V12] Fetching bulk data for season ${seasonId}...`);
         
         // Fetch all four data sources simultaneously for efficiency
         const [summaryRes, hitsRes, blocksRes, toiRes] = await Promise.all([
@@ -36,14 +36,14 @@ export default async function handler(req, res) {
         ]);
 
         if (!summaryRes.ok) {
-            console.error(`[V11] Summary API failed with status: ${summaryRes.status}`);
+            console.error(`[V12] Summary API failed with status: ${summaryRes.status}`);
             throw new Error(`The main player stats endpoint failed to respond.`);
         }
 
         const summaryData = await summaryRes.json();
         
         if (!summaryData || !Array.isArray(summaryData.data)) {
-            console.warn("[V11] Main stats API did not return valid data. Returning empty.");
+            console.warn("[V12] Main stats API did not return valid data. Returning empty.");
             return res.status(200).json([]);
         }
 
@@ -71,9 +71,9 @@ export default async function handler(req, res) {
                 plusMinus: player.plusMinus,
                 penaltyMinutes: String(player.penaltyMinutes),
                 powerPlayGoals: player.ppGoals,
-                hits: 0, // Initialize to 0
-                blockedShots: 0, // Initialize to 0
-                timeOnIce: '0:00', // Initialize to 0
+                hits: 0, 
+                blockedShots: 0,
+                timeOnIce: '0:00',
             });
         });
         
@@ -88,7 +88,7 @@ export default async function handler(req, res) {
                 });
             }
         } else {
-            console.warn(`[V11] Hits API endpoint failed with status ${hitsRes.status}. Hits will show as 0.`);
+            console.warn(`[V12] Hits API endpoint failed with status ${hitsRes.status}. Hits will show as 0.`);
         }
 
         // Step 3: Merge blocked shots data if the fetch was successful.
@@ -102,7 +102,7 @@ export default async function handler(req, res) {
                 });
             }
         } else {
-             console.warn(`[V11] Blocks API endpoint failed with status ${blocksRes.status}. Blocks will show as 0.`);
+             console.warn(`[V12] Blocks API endpoint failed with status ${blocksRes.status}. Blocks will show as 0.`);
         }
         
         // Step 4: Merge Time On Ice data if the fetch was successful.
@@ -111,21 +111,22 @@ export default async function handler(req, res) {
             if (toiData && Array.isArray(toiData.data)) {
                 toiData.data.forEach(player => {
                     if (playerStats.has(player.playerId)) {
-                        playerStats.get(player.playerId).timeOnIce = player.timeOnIce ?? '0:00';
+                        // **FIX**: The table expects TOI/G, so we now use `timeOnIcePerGame` from the API.
+                        playerStats.get(player.playerId).timeOnIce = player.timeOnIcePerGame ?? '0:00';
                     }
                 });
             }
         } else {
-             console.warn(`[V11] TOI API endpoint failed with status ${toiRes.status}. TOI will show as 0:00.`);
+             console.warn(`[V12] TOI API endpoint failed with status ${toiRes.status}. TOI will show as 0:00.`);
         }
 
         const consolidatedStats = Array.from(playerStats.values());
 
-        console.log(`[V11] Processing complete. Consolidated stats for ${consolidatedStats.length} players.`);
+        console.log(`[V12] Processing complete. Consolidated stats for ${consolidatedStats.length} players.`);
         res.status(200).json(consolidatedStats);
 
     } catch (error) {
-        console.error("[V11] Critical error in nhl-player-stats function:", error.message);
+        console.error("[V12] Critical error in nhl-player-stats function:", error.message);
         res.status(500).json({ error: "Could not fetch player statistics.", details: error.message });
     }
 }
