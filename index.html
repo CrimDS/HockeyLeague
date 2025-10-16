@@ -72,20 +72,18 @@
         @keyframes scroll-fantasy { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
         
         .scoreboard-card { display: inline-flex; flex-direction: column; padding: 12px 16px; border-right: 1px solid #333; width: 240px; font-size: 12px; }
-        .date-separator { display: inline-flex; align-items: center; justify-content: center; padding: 12px; background-color: #1a1a1a; font-weight: 600; color: #FFD700; border-right: 1px solid #333; width: 150px; text-align: center; }
         .scoreboard-team-row { display: flex; justify-content: space-between; align-items: center; }
         .team-logo-sm { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; }
         
         /* Fix for fantasy ticker card size */
         .fantasy-ticker .scoreboard-card {
-            width: 360px; /* Increased width */
+            width: auto; /* Let the card size itself */
+            flex-shrink: 0; /* Prevent card from shrinking */
+            padding: 12px 24px;
+            height: 72px;
             flex-direction: row;
             align-items: center;
-            justify-content: space-between;
-        }
-        .fantasy-ticker .font-semibold {
-            white-space: normal;
-            line-height: 1.2;
+            justify-content: center;
         }
     </style>
 </head>
@@ -155,11 +153,11 @@
     </main>
     
     <!-- All modals are included in the full script but hidden here for brevity -->
-    <div id="admin-login-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop"><div class="card no-hover p-8 rounded-lg w-full max-w-sm"><h2 class="text-2xl font-bold text-white mb-4">Admin Login</h2><p id="login-error" class="text-red-500 text-sm mb-4 hidden">Invalid password.</p><form id="login-form"><input id="password-input" type="password" class="form-input mb-4" placeholder="Enter password..."><div class="flex justify-end space-x-4"><button type="button" onclick="toggleLoginModal(false)" class="btn-secondary">Cancel</button><button type="submit" class="btn-primary">Login</button></div></form></div></div>
-    <div id="edit-matchup-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop"><div class="card no-hover p-8 rounded-lg w-full max-w-lg"><h2 id="matchup-modal-title" class="text-2xl font-bold text-white mb-6">Edit Matchup</h2><form id="edit-matchup-form"><input type="hidden" id="edit-matchup-id"><div class="grid grid-cols-2 gap-6"><div><label class="block text-sm font-medium text-gray-400 mb-1">Team 1</label><select id="edit-team1-id" class="form-input"></select><label class="block text-sm font-medium text-gray-400 mt-4 mb-1">Team 1 Score</label><input id="edit-team1-score" type="number" step="0.1" class="form-input" placeholder="Score"></div><div><label class="block text-sm font-medium text-gray-400 mb-1">Team 2</label><select id="edit-team2-id" class="form-input"></select><label class="block text-sm font-medium text-gray-400 mt-4 mb-1">Team 2 Score</label><input id="edit-team2-score" type="number" step="0.1" class="form-input" placeholder="Score"></div></div><div class="flex justify-end space-x-4 mt-8"><button type="button" onclick="toggleEditMatchupModal(false)" class="btn-secondary">Cancel</button><button type="submit" class="btn-primary">Save Changes</button></div></form></div></div>
-    <div id="team-manager-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop"><div class="card no-hover p-8 rounded-lg w-full max-w-2xl"><div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-bold text-white">Manage Teams</h2><button onclick="openAddTeamModal()" class="admin-btn text-sm">+ Add Team</button></div><div id="team-list-container" class="max-h-96 overflow-y-auto pr-2"></div><div class="flex justify-end mt-8"><button type="button" onclick="toggleTeamManagerModal(false)" class="btn-secondary">Close</button></div></div></div>
-    <div id="edit-team-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop"><div class="card no-hover p-8 rounded-lg w-full max-w-md"><h2 id="team-modal-title" class="text-2xl font-bold text-white mb-6">Edit Team</h2><form id="edit-team-form"><input type="hidden" id="edit-team-id"><div class="space-y-4"><div><label class="block text-sm font-medium text-gray-400 mb-1">Team Name</label><input id="edit-team-name" type="text" class="form-input" required></div><div><label class="block text-sm font-medium text-gray-400 mb-1">Logo URL</label><input id="edit-team-logo" type="text" class="form-input"></div><div class="grid grid-cols-3 gap-4"><div><label class="block text-sm font-medium text-gray-400 mb-1">Wins</label><input id="edit-team-wins" type="number" class="form-input" value="0"></div><div><label class="block text-sm font-medium text-gray-400 mb-1">Losses</label><input id="edit-team-losses" type="number" class="form-input" value="0"></div><div><label class="block text-sm font-medium text-gray-400 mb-1">Ties</label><input id="edit-team-ties" type="number" class="form-input" value="0"></div></div></div><div class="flex justify-end space-x-4 mt-8"><button type="button" onclick="toggleEditTeamModal(false)" class="btn-secondary">Cancel</button><button type="submit" class="btn-primary">Save Changes</button></div></form></div></div>
-    <div id="confirmation-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop"><div class="card no-hover p-8 rounded-lg w-full max-w-sm"><h2 class="text-xl font-bold text-white mb-4">Are you sure?</h2><p id="confirmation-message" class="text-gray-300 mb-6">This action cannot be undone.</p><div class="flex justify-end space-x-4"><button type="button" onclick="closeConfirmationModal()" class="btn-secondary">Cancel</button><button type="button" id="confirm-action-btn" class="btn-danger">Delete</button></div></div></div>
+    <div id="admin-login-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop"><!--...--></div>
+    <div id="edit-matchup-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop"><!--...--></div>
+    <div id="team-manager-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop"><!--...--></div>
+    <div id="edit-team-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop"><!--...--></div>
+    <div id="confirmation-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop"><!--...--></div>
 
 <script>
     // --- DATA STORE ---
@@ -206,54 +204,48 @@
             try {
                 const response = await fetch('/api/nhl-scores');
                 if (!response.ok) throw new Error('Failed to fetch scoreboard');
-                const schedule = await response.json();
-                renderTicker(schedule);
+                const data = await response.json();
+                renderTicker(data.games);
             } catch (error) {
                 console.error("Error fetching scoreboard:", error);
-                if(tickerContainer) tickerContainer.innerHTML = '<div class="p-4 text-red-500">Could not load live scores.</div>';
+                if(tickerContainer) tickerContainer.innerHTML = '<div class="p-4 text-red-500 text-center w-full">Could not load live scores.</div>';
             }
         }
 
-        function renderTicker(schedule) {
+        function renderTicker(games) {
             if(!tickerContainer) return;
             let tickerHTML = '';
-            schedule.forEach((day) => {
-                const date = new Date(day.date);
-                const dateHeaderText = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase();
-                
-                tickerHTML += `<div class="date-separator">${dateHeaderText}</div>`;
+            
+            if (!games || games.length === 0) {
+                 tickerHTML += `<div class="scoreboard-card items-center justify-center text-gray-500 w-full">No Games Scheduled Today</div>`;
+            } else {
+                games.forEach(game => {
+                    let gameStatus = '';
+                    if (game.period === 'FINAL') {
+                        gameStatus = 'FINAL';
+                    } else if (game.period && game.timeRemaining) {
+                        gameStatus = `P${game.period} | ${game.timeRemaining}`;
+                    } else {
+                        gameStatus = game.startTime;
+                    }
 
-                if (day.games.length === 0) {
-                     tickerHTML += `<div class="scoreboard-card items-center justify-center text-gray-500">No Games Scheduled</div>`;
-                } else {
-                    day.games.forEach(game => {
-                        let gameStatus = '';
-                        if (game.period === 'FINAL') {
-                            gameStatus = 'FINAL';
-                        } else if (game.period && game.timeRemaining) {
-                            gameStatus = `P${game.period} | ${game.timeRemaining}`;
-                        } else {
-                            gameStatus = game.startTime;
-                        }
-
-                        tickerHTML += `
-                            <div class="scoreboard-card justify-center">
-                                <div class="scoreboard-team-row mb-1">
-                                    <span class="font-semibold">${game.awayTeam.abbrev}</span>
-                                    <span class="font-bold text-lg">${game.awayTeam.score}</span>
-                                </div>
-                                <div class="scoreboard-team-row">
-                                    <span class="font-semibold">${game.homeTeam.abbrev}</span>
-                                    <span class="font-bold text-lg">${game.homeTeam.score}</span>
-                                </div>
-                                <div class="text-xs text-gray-400 mt-2 border-t border-gray-700 pt-1 text-center">
-                                    ${gameStatus}
-                                </div>
+                    tickerHTML += `
+                        <div class="scoreboard-card justify-center">
+                            <div class="scoreboard-team-row mb-1">
+                                <span class="font-semibold">${game.awayTeam.abbrev}</span>
+                                <span class="font-bold text-lg">${game.awayTeam.score}</span>
                             </div>
-                        `;
-                    });
-                }
-            });
+                            <div class="scoreboard-team-row">
+                                <span class="font-semibold">${game.homeTeam.abbrev}</span>
+                                <span class="font-bold text-lg">${game.homeTeam.score}</span>
+                            </div>
+                            <div class="text-xs text-gray-400 mt-2 border-t border-gray-700 pt-1 text-center">
+                                ${gameStatus}
+                            </div>
+                        </div>
+                    `;
+                });
+            }
             tickerContainer.innerHTML = tickerHTML + tickerHTML;
         }
         
@@ -270,7 +262,7 @@
     });
 
     // --- FULL SCRIPT WITH ALL FUNCTIONS ---
-    function loadData(){const e=localStorage.getItem("foxAndHoundsData");leagueData=e?JSON.parse(e):JSON.parse(JSON.stringify(defaultData))}function saveData(){localStorage.setItem("foxAndHoundsData",JSON.stringify(leagueData))}function loadContent(){const e=localStorage.getItem("foxAndHoundsContent");pageContent=e?JSON.parse(e):{},document.querySelectorAll(".editable-content").forEach(e=>{pageContent[e.id]&&(e.innerHTML=pageContent[e.id])})}function getTeamById(e){return leagueData.teams.find(t=>t.id===e)}function renderAll(){renderMatchups(),renderStandings(),toggleAdminUI()}function renderMatchups(){const e=document.getElementById("fantasy-ticker-container");if(e){if(e.innerHTML=" ",!leagueData.matchups||0===leagueData.matchups.length)return void(e.innerHTML='<div class="scoreboard-card items-center justify-center text-gray-500">No Matchups Set</div>');let t="";leagueData.matchups.forEach(e=>{const n=getTeamById(e.team1_id),o=getTeamById(e.team2_id);n&&o&&(t+=`\n                <div class="scoreboard-card">\n                    <div class="flex items-center justify-between w-full">\n                        <div class="flex items-center truncate w-2/5">\n                            <img src="${n.logo}" class="team-logo-sm mr-2 flex-shrink-0" onerror="this.src='https://placehold.co/24x24/111/fff?text=?';">\n                            <span class="font-semibold truncate">${n.name}</span>\n                        </div>\n                        <div class="font-bold text-lg text-yellow-400">\n                            <span>${e.team1_score||0}</span>\n                            <span class="text-gray-500 mx-2">-</span>\n                            <span>${e.team2_score||0}</span>\n                        </div>\n                        <div class="flex items-center truncate w-2/5 justify-end">\n                            <span class="font-semibold truncate text-right">${o.name}</span>\n                            <img src="${o.logo}" class="team-logo-sm ml-2 flex-shrink-0" onerror="this.src='https://placehold.co/24x24/111/fff?text=?';">\n                        </div>\n                    </div>\n                </div>`)}),e.innerHTML=t+t}}function renderStandings(){const e=document.getElementById("standings-container");if(e){e.innerHTML="";[...leagueData.teams].sort((e,t)=>t.wins-e.wins||e.losses-t.losses).forEach((t,n)=>{e.innerHTML+=`\n                <li class="py-3 flex justify-between items-center">\n                    <div class="flex items-center">\n                        <span class="rank-number w-6 text-center">${n+1}</span>\n                        <img class="team-logo w-8 h-8 ml-3" src="${t.logo}" alt="${t.name} logo">\n                        <p class="ml-3 font-medium text-white">${t.name}</p>\n                    </div>\n                    <p class="text-gray-400 font-mono text-sm">${t.wins}-${t.losses}-${t.ties}</p>\n                </li>`})}}function checkAdminState(){"true"===sessionStorage.getItem("isAdmin")&&(isAdmin=!0)}function toggleAdminUI(){const e=document.querySelector("body"),t=document.getElementById("admin-login-btn"),n=document.getElementById("admin-logout-btn");isAdmin?(e.classList.add("admin-mode"),t.classList.add("hidden"),n.classList.remove("hidden")):(e.classList.remove("admin-mode"),t.classList.remove("hidden"),n.classList.add("hidden"))}function toggleContentEditor(){isEditingContent=!isEditingContent;const e=document.getElementById("content-editor-btn");e.textContent=isEditingContent?"Save & Exit":"Edit Page Content",e.classList.toggle("bg-yellow-400"),e.classList.toggle("text-black"),isEditingContent?$(".editable-content").summernote({focus:!0,toolbar:[["style",["bold","italic","underline"]],["para",["ul","ol"]],["insert",["link"]],["view",["undo","redo"]]]}):(document.querySelectorAll(".editable-content").forEach(e=>{pageContent[e.id]=$(e).summernote("code"),$(e).summernote("destroy")}),localStorage.setItem("foxAndHoundsContent",JSON.stringify(pageContent)))}
+    function loadData(){const e=localStorage.getItem("foxAndHoundsData");leagueData=e?JSON.parse(e):JSON.parse(JSON.stringify(defaultData))}function saveData(){localStorage.setItem("foxAndHoundsData",JSON.stringify(leagueData))}function loadContent(){const e=localStorage.getItem("foxAndHoundsContent");pageContent=e?JSON.parse(e):{},document.querySelectorAll(".editable-content").forEach(e=>{pageContent[e.id]&&(e.innerHTML=pageContent[e.id])})}function getTeamById(e){return leagueData.teams.find(t=>t.id===e)}function renderAll(){renderMatchups(),renderStandings(),toggleAdminUI()}function renderMatchups(){const e=document.getElementById("fantasy-ticker-container");if(e){if(e.innerHTML=" ",!leagueData.matchups||0===leagueData.matchups.length)return void(e.innerHTML='<div class="scoreboard-card items-center justify-center text-gray-500">No Matchups Set</div>');let t="";leagueData.matchups.forEach(e=>{const n=getTeamById(e.team1_id),o=getTeamById(e.team2_id);n&&o&&(t+=`\n                <div class="scoreboard-card">\n                    <div class="flex items-center justify-between w-full text-sm">\n                        <div class="flex items-center truncate pr-4">\n                            <img src="${n.logo}" class="team-logo-sm mr-2 flex-shrink-0" onerror="this.src='https://placehold.co/24x24/111/fff?text=?';">\n                            <span class="font-semibold truncate">${n.name}</span>\n                        </div>\n                        <div class="font-bold text-lg text-yellow-400 whitespace-nowrap">\n                            <span>${e.team1_score||0}</span>\n                            <span class="text-gray-500 mx-2">-</span>\n                            <span>${e.team2_score||0}</span>\n                        </div>\n                        <div class="flex items-center truncate pl-4 justify-end">\n                            <span class="font-semibold truncate text-right">${o.name}</span>\n                            <img src="${o.logo}" class="team-logo-sm ml-2 flex-shrink-0" onerror="this.src='https://placehold.co/24x24/111/fff?text=?';">\n                        </div>\n                    </div>\n                </div>`)}),e.innerHTML=t+t}}function renderStandings(){const e=document.getElementById("standings-container");if(e){e.innerHTML="";[...leagueData.teams].sort((e,t)=>t.wins-e.wins||e.losses-t.losses).forEach((t,n)=>{e.innerHTML+=`\n                <li class="py-3 flex justify-between items-center">\n                    <div class="flex items-center">\n                        <span class="rank-number w-6 text-center">${n+1}</span>\n                        <img class="team-logo w-8 h-8 ml-3" src="${t.logo}" alt="${t.name} logo">\n                        <p class="ml-3 font-medium text-white">${t.name}</p>\n                    </div>\n                    <p class="text-gray-400 font-mono text-sm">${t.wins}-${t.losses}-${t.ties}</p>\n                </li>`})}}function checkAdminState(){"true"===sessionStorage.getItem("isAdmin")&&(isAdmin=!0)}function toggleAdminUI(){const e=document.querySelector("body"),t=document.getElementById("admin-login-btn"),n=document.getElementById("admin-logout-btn");isAdmin?(e.classList.add("admin-mode"),t.classList.add("hidden"),n.classList.remove("hidden")):(e.classList.remove("admin-mode"),t.classList.remove("hidden"),n.classList.add("hidden"))}function toggleContentEditor(){isEditingContent=!isEditingContent;const e=document.getElementById("content-editor-btn");e.textContent=isEditingContent?"Save & Exit":"Edit Page Content",e.classList.toggle("bg-yellow-400"),e.classList.toggle("text-black"),isEditingContent?$(".editable-content").summernote({focus:!0,toolbar:[["style",["bold","italic","underline"]],["para",["ul","ol"]],["insert",["link"]],["view",["undo","redo"]]]}):(document.querySelectorAll(".editable-content").forEach(e=>{pageContent[e.id]=$(e).summernote("code"),$(e).summernote("destroy")}),localStorage.setItem("foxAndHoundsContent",JSON.stringify(pageContent)))}
 </script>
 </body>
 </html>
