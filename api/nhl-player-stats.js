@@ -1,6 +1,6 @@
 // api/nhl-player-stats.js
 
-// [V10] Final version. This uses the correct bulk data endpoints for the entire league, not just leaders.
+// [V11] Added Time On Ice stat fetching and merging.
 export default async function handler(req, res) {
     // 1. Determine the season to fetch
     const { season } = req.query;
@@ -21,26 +21,29 @@ export default async function handler(req, res) {
     const summaryUrl = `${baseUrl}/summary?sort=[{"property":"points","direction":"DESC"}]&${commonParams}`;
     const hitsUrl = `${baseUrl}/hits?sort=[{"property":"hits","direction":"DESC"}]&${commonParams}`;
     const blocksUrl = `${baseUrl}/blocks?sort=[{"property":"blocks","direction":"DESC"}]&${commonParams}`;
+    const toiUrl = `${baseUrl}/timeonice?sort=[{"property":"timeOnIce","direction":"DESC"}]&${commonParams}`;
+
 
     try {
-        console.log(`[V10] Fetching bulk data for season ${seasonId}...`);
+        console.log(`[V11] Fetching bulk data for season ${seasonId}...`);
         
-        // Fetch all three data sources simultaneously for efficiency
-        const [summaryRes, hitsRes, blocksRes] = await Promise.all([
+        // Fetch all four data sources simultaneously for efficiency
+        const [summaryRes, hitsRes, blocksRes, toiRes] = await Promise.all([
             fetch(summaryUrl),
             fetch(hitsUrl),
-            fetch(blocksUrl)
+            fetch(blocksUrl),
+            fetch(toiUrl)
         ]);
 
         if (!summaryRes.ok) {
-            console.error(`[V10] Summary API failed with status: ${summaryRes.status}`);
+            console.error(`[V11] Summary API failed with status: ${summaryRes.status}`);
             throw new Error(`The main player stats endpoint failed to respond.`);
         }
 
         const summaryData = await summaryRes.json();
         
         if (!summaryData || !Array.isArray(summaryData.data)) {
-            console.warn("[V10] Main stats API did not return valid data. Returning empty.");
+            console.warn("[V11] Main stats API did not return valid data. Returning empty.");
             return res.status(200).json([]);
         }
 
@@ -70,6 +73,7 @@ export default async function handler(req, res) {
                 powerPlayGoals: player.ppGoals,
                 hits: 0, // Initialize to 0
                 blockedShots: 0, // Initialize to 0
+                timeOnIce: '0:00', // Initialize to 0
             });
         });
         
@@ -84,7 +88,7 @@ export default async function handler(req, res) {
                 });
             }
         } else {
-            console.warn(`[V10] Hits API endpoint failed with status ${hitsRes.status}. Hits will show as 0.`);
+            console.warn(`[V11] Hits API endpoint failed with status ${hitsRes.status}. Hits will show as 0.`);
         }
 
         // Step 3: Merge blocked shots data if the fetch was successful.
@@ -98,16 +102,30 @@ export default async function handler(req, res) {
                 });
             }
         } else {
-             console.warn(`[V10] Blocks API endpoint failed with status ${blocksRes.status}. Blocks will show as 0.`);
+             console.warn(`[V11] Blocks API endpoint failed with status ${blocksRes.status}. Blocks will show as 0.`);
+        }
+        
+        // Step 4: Merge Time On Ice data if the fetch was successful.
+        if (toiRes.ok) {
+            const toiData = await toiRes.json();
+            if (toiData && Array.isArray(toiData.data)) {
+                toiData.data.forEach(player => {
+                    if (playerStats.has(player.playerId)) {
+                        playerStats.get(player.playerId).timeOnIce = player.timeOnIce ?? '0:00';
+                    }
+                });
+            }
+        } else {
+             console.warn(`[V11] TOI API endpoint failed with status ${toiRes.status}. TOI will show as 0:00.`);
         }
 
         const consolidatedStats = Array.from(playerStats.values());
 
-        console.log(`[V10] Processing complete. Consolidated stats for ${consolidatedStats.length} players.`);
+        console.log(`[V11] Processing complete. Consolidated stats for ${consolidatedStats.length} players.`);
         res.status(200).json(consolidatedStats);
 
     } catch (error) {
-        console.error("[V10] Critical error in nhl-player-stats function:", error.message);
+        console.error("[V11] Critical error in nhl-player-stats function:", error.message);
         res.status(500).json({ error: "Could not fetch player statistics.", details: error.message });
     }
 }
