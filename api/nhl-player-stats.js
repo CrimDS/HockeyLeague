@@ -1,6 +1,6 @@
 // api/nhl-player-stats.js
 
-// [V14] Implemented a hybrid approach, using /summary for core stats and enriching with /realtime for banger stats.
+// [V15] Corrected the realtime API call to use a simpler, more stable set of parameters.
 export default async function handler(req, res) {
     // 1. Determine the season to fetch
     const { season } = req.query;
@@ -14,15 +14,19 @@ export default async function handler(req, res) {
     
     const seasonId = season || currentSeasonId;
 
-    // 2. Construct URLs for both the summary and realtime endpoints
+    // 2. Construct URLs. The realtime endpoint uses a simpler query to ensure stability.
     const baseUrl = `https://api.nhle.com/stats/rest/en/skater`;
-    const commonParams = `isAggregate=false&isGame=false&limit=-1&sort=[{"property":"points","direction":"DESC"}]&cayenneExp=seasonId=${seasonId} and gameTypeId=2 and gamesPlayed>=1`;
     
-    const summaryUrl = `${baseUrl}/summary?${commonParams}`;
-    const realtimeUrl = `${baseUrl}/realtime?${commonParams}`;
+    // Parameters for the main summary endpoint
+    const summaryParams = `isAggregate=false&isGame=false&limit=-1&sort=[{"property":"points","direction":"DESC"}]&cayenneExp=seasonId=${seasonId} and gameTypeId=2 and gamesPlayed>=1`;
+    const summaryUrl = `${baseUrl}/summary?${summaryParams}`;
+
+    // **FIX**: Parameters for the realtime endpoint are simplified. We remove the sort, as it's not needed and causes errors.
+    const realtimeParams = `isAggregate=false&isGame=false&limit=-1&cayenneExp=seasonId=${seasonId} and gameTypeId=2 and gamesPlayed>=1`;
+    const realtimeUrl = `${baseUrl}/realtime?${realtimeParams}`;
 
     try {
-        console.log(`[V14] Fetching summary and realtime data for season ${seasonId}...`);
+        console.log(`[V15] Fetching summary and realtime data for season ${seasonId}...`);
         
         const [summaryRes, realtimeRes] = await Promise.all([
             fetch(summaryUrl),
@@ -30,14 +34,14 @@ export default async function handler(req, res) {
         ]);
 
         if (!summaryRes.ok) {
-            console.error(`[V14] Summary API failed with status: ${summaryRes.status}`);
+            console.error(`[V15] Summary API failed with status: ${summaryRes.status}`);
             throw new Error(`The main player stats endpoint failed to respond.`);
         }
 
         const summaryData = await summaryRes.json();
         
         if (!summaryData || !Array.isArray(summaryData.data)) {
-            console.warn("[V14] Main summary API did not return valid data. Returning empty.");
+            console.warn("[V15] Main summary API did not return valid data. Returning empty.");
             return res.status(200).json([]);
         }
 
@@ -46,6 +50,7 @@ export default async function handler(req, res) {
         if (realtimeRes.ok) {
             const realtimeData = await realtimeRes.json();
             if (realtimeData && Array.isArray(realtimeData.data)) {
+                console.log(`[V15] Successfully fetched ${realtimeData.data.length} records from realtime endpoint.`);
                 realtimeData.data.forEach(player => {
                     if (player && player.playerId) {
                         realtimeStatsMap.set(player.playerId, {
@@ -57,7 +62,7 @@ export default async function handler(req, res) {
                 });
             }
         } else {
-            console.warn(`[V14] Realtime API failed with status ${realtimeRes.status}. Banger stats may be missing.`);
+            console.warn(`[V15] Realtime API failed with status ${realtimeRes.status}. Banger stats may be missing.`);
         }
 
 
@@ -92,11 +97,11 @@ export default async function handler(req, res) {
             };
         }).filter(Boolean); // Filter out any null entries
 
-        console.log(`[V14] Processing complete. Consolidated stats for ${consolidatedStats.length} players.`);
+        console.log(`[V15] Processing complete. Consolidated stats for ${consolidatedStats.length} players.`);
         res.status(200).json(consolidatedStats);
 
     } catch (error) {
-        console.error("[V14] Critical error in nhl-player-stats function:", error.message);
+        console.error("[V15] Critical error in nhl-player-stats function:", error.message);
         res.status(500).json({ error: "Could not fetch player statistics.", details: error.message });
     }
 }
