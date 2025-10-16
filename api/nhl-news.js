@@ -1,11 +1,12 @@
 // api/hockey-news.js
 
-// This endpoint fetches the latest hockey news headlines from ESPN's RSS feed using robust parsing.
+// This endpoint fetches the latest hockey news headlines from the provided RSS feed.
 export default async function handler(req, res) {
-    const rssUrl = 'https://www.espn.com/espn/rss/nhl/news';
+    // **FIX**: Updated the RSS feed URL to the new one provided.
+    const rssUrl = 'https://rss.app/feeds/NRVYwqwAyc3Rgncx.xml';
 
     try {
-        console.log(`[Hockey News V3] Fetching news from RSS feed: ${rssUrl}`);
+        console.log(`[Hockey News V4] Fetching news from RSS feed: ${rssUrl}`);
         const response = await fetch(rssUrl, {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'
@@ -46,11 +47,11 @@ export default async function handler(req, res) {
             return null;
         }).filter(Boolean); // Filter out any null (skipped or old) items
         
-        console.log(`[Hockey News V3] Found ${headlines.length} articles from the last 24 hours.`);
+        console.log(`[Hockey News V4] Found ${headlines.length} articles from the last 24 hours.`);
         res.status(200).json({ headlines });
 
     } catch (error) {
-        console.error("[Hockey News V3] Critical error:", error.message);
+        console.error("[Hockey News V4] Critical error:", error.message);
         res.status(500).json({ error: "Could not fetch hockey news." });
     }
 }
