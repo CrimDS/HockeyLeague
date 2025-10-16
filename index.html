@@ -114,6 +114,7 @@
         .editable-content.is-editing {
             outline: 2px dashed #FFD700;
             outline-offset: 4px;
+            border-radius: 4px; /* Makes the outline look cleaner */
         }
     </style>
 </head>
@@ -241,6 +242,10 @@
                         </svg>
                         <h1 class="text-2xl font-bold text-white">Fox & Hounds Hockey League</h1>
                     </div>
+                    <nav class="flex items-center space-x-6">
+                        <a href="index.html" class="nav-link py-5">League Home</a>
+                        <a href="player-stats.html" class="nav-link py-5">Player Stats</a>
+                    </nav>
                     <div class="flex items-center space-x-4">
                          <div id="editor-controls" class="admin-controls">
                              <button id="content-editor-btn" class="admin-btn">Edit Page Content</button>
@@ -259,7 +264,7 @@
                 <!-- Matchups Column -->
                 <div class="lg:col-span-2 space-y-6">
                     <div class="flex justify-between items-center px-2">
-                        <div id="matchups-header" class="editable-content">
+                        <div id="matchups-header" class="editable-content p-1">
                             <h2 class="text-2xl font-semibold text-white">Weekly Matchups</h2>
                         </div>
                         <div class="admin-controls">
@@ -274,7 +279,7 @@
                 <!-- Standings Column -->
                 <div class="space-y-6">
                      <div class="flex justify-between items-center px-2">
-                        <div id="standings-header" class="editable-content">
+                        <div id="standings-header" class="editable-content p-1">
                             <h2 class="text-2xl font-semibold text-white">League Standings</h2>
                         </div>
                         <div class="admin-controls">
@@ -347,8 +352,10 @@
 
     function saveContent() {
         document.querySelectorAll('.editable-content').forEach(el => {
-            if (tinymce.get(el.id)) {
-                pageContent[el.id] = tinymce.get(el.id).getContent();
+            // Check if the editor for this element exists and is active
+            const editor = tinymce.get(el.id);
+            if (editor) {
+                pageContent[el.id] = editor.getContent();
             }
         });
         localStorage.setItem('foxAndHoundsContent', JSON.stringify(pageContent));
@@ -480,22 +487,18 @@
         btn.classList.toggle('text-black');
 
         if (isEditingContent) {
+            // Add visual cue immediately
+            document.querySelectorAll('.editable-content').forEach(el => el.classList.add('is-editing'));
+
             tinymce.init({
                 selector: '.editable-content',
                 inline: true,
                 menubar: false,
                 skin: 'tinymce-dark',
-                content_css: 'dark',
-                plugins: 'lists link autolink',
-                toolbar: 'bold italic underline | bullist numlist | link | undo redo',
-                setup: function (editor) {
-                    editor.on('focus', function () {
-                        editor.targetElm.classList.add('is-editing');
-                    });
-                    editor.on('blur', function () {
-                         editor.targetElm.classList.remove('is-editing');
-                    });
-                }
+                content_css: false, // Use page's CSS
+                plugins: 'lists link autolink quickbars',
+                toolbar: false, // Disable the fixed toolbar
+                quickbars_selection_toolbar: 'bold italic underline | bullist numlist | link',
             });
         } else {
             saveContent();
@@ -504,7 +507,8 @@
                 if (editor) {
                     editor.destroy();
                 }
-                 el.classList.remove('is-editing');
+                // Remove visual cue
+                el.classList.remove('is-editing');
             });
         }
     }
