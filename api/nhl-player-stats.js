@@ -1,6 +1,6 @@
 // api/nhl-player-stats.js
 
-// This version includes aggressively defensive data processing to prevent crashes.
+// This version adds a User-Agent header to mimic a browser request, which should prevent the API from blocking the fetch.
 export default async function handler(req, res) {
     // 1. Determine the season to fetch
     const { season } = req.query;
@@ -18,31 +18,35 @@ export default async function handler(req, res) {
     const url = `https://api.nhle.com/stats/rest/en/skater/realtime?isAggregate=false&isGame=false&sort=[{"property":"points","direction":"DESC"}]&limit=-1&cayenneExp=seasonId=${seasonId} and gameTypeId=2 and gamesPlayed>=1`;
         
     try {
-        console.log(`[V5] Attempting to fetch stats for season ${seasonId} from ${url}`);
-        const response = await fetch(url);
+        console.log(`[V6] Attempting to fetch stats for season ${seasonId} from ${url}`);
+        
+        // **FIX**: Added a 'User-Agent' header to the fetch request.
+        // This makes the request look like it's coming from a standard browser,
+        // which is often required to prevent undocumented APIs from blocking server-side requests.
+        const response = await fetch(url, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'
+            }
+        });
 
         if (!response.ok) {
             const errorBody = await response.text();
-            console.error(`[V5] NHL API responded with status: ${response.status}. Body: ${errorBody}`);
+            console.error(`[V6] NHL API responded with status: ${response.status}. Body: ${errorBody}`);
             throw new Error(`Failed to fetch player stats. Status: ${response.status}`);
         }
         
         const data = await response.json();
         
         if (!data || !Array.isArray(data.data) || data.data.length === 0) {
-            console.warn(`[V5] No players found for season ${seasonId}. The API returned an empty or invalid data array.`);
+            console.warn(`[V6] No players found for season ${seasonId}. The API returned an empty or invalid data array.`);
             return res.status(200).json([]);
         }
 
         const mappedStats = [];
-        // **FIX**: Process each player individually inside a try-catch block.
-        // This makes the function "aggressively defensive". If one player record is malformed
-        // and causes an error, it will be skipped and logged instead of crashing the whole process.
         for (const player of data.data) {
             try {
-                // Skip if the entry isn't a valid player object
                 if (!player || typeof player !== 'object' || !player.playerId) {
-                    console.warn('[V5] Skipping a malformed player entry:', player);
+                    console.warn('[V6] Skipping a malformed player entry:', player);
                     continue;
                 }
 
@@ -68,15 +72,15 @@ export default async function handler(req, res) {
                     blockedShots: player.blockedShots ?? 0,
                 });
             } catch (e) {
-                console.error(`[V5] Failed to process a single player record. Skipping.`, { player, error: e.message });
+                console.error(`[V6] Failed to process a single player record. Skipping.`, { player, error: e.message });
             }
         }
         
-        console.log(`[V5] Processing complete. Successfully mapped ${mappedStats.length} out of ${data.data.length} players for season ${seasonId}.`);
+        console.log(`[V6] Processing complete. Successfully mapped ${mappedStats.length} out of ${data.data.length} players for season ${seasonId}.`);
         res.status(200).json(mappedStats);
 
     } catch (error) {
-        console.error("[V5] Critical error in nhl-player-stats function:", error.message);
+        console.error("[V6] Critical error in nhl-player-stats function:", error.message);
         res.status(500).json({ error: "Could not fetch player statistics.", details: error.message });
     }
 }
