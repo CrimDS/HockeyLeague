@@ -1,12 +1,15 @@
 // api/nhl-scoreboard.js
 
-// This endpoint fetches detailed scoreboard data for yesterday, today, and tomorrow.
+// This version switches back to the more stable ESPN API to fix loading issues.
 export default async function handler(req, res) {
-    // Helper to get date strings in YYYY-MM-DD format
+    // Helper to get date strings in YYYYMMDD format for the ESPN API
     const getFormattedDate = (offset = 0) => {
         const date = new Date();
         date.setDate(date.getDate() + offset);
-        return date.toISOString().split('T')[0];
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}${month}${day}`;
     };
 
     const today = getFormattedDate();
@@ -15,69 +18,68 @@ export default async function handler(req, res) {
 
     const dates = [yesterday, today, tomorrow];
     const fetchPromises = dates.map(date => 
-        fetch(`https://api-web.nhle.com/v1/schedule/${date}`)
+        fetch(`https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/scoreboard?dates=${date}`)
     );
 
     try {
-        console.log(`[Scoreboard] Fetching game data for dates: ${dates.join(', ')}`);
+        console.log(`[Scoreboard V2] Fetching game data from ESPN for dates: ${dates.join(', ')}`);
         const responses = await Promise.all(fetchPromises);
 
-        const allGameWeeks = await Promise.all(responses.map(async (response, index) => {
+        const allEvents = await Promise.all(responses.map(async (response, index) => {
             if (!response.ok) {
-                console.warn(`[Scoreboard] API failed for date ${dates[index]} with status: ${response.status}`);
-                return { date: dates[index], games: [] }; // Return empty for a failed date
+                console.warn(`[Scoreboard V2] ESPN API failed for date ${dates[index]} with status: ${response.status}`);
+                return { date: dates[index], events: [] };
             }
-            return response.json();
+            const data = await response.json();
+            return { date: data.day.date, events: data.events };
         }));
 
-        // The API returns a `gameWeek` array, even for a single day.
-        // We need to process this to create a clean structure.
-        const processedSchedule = allGameWeeks.map((weekData, index) => {
-            const date = weekData.date || dates[index]; // Use the original date as a key
-            const games = weekData.games || [];
-
-            const processedGames = games.map(game => {
-                // Safely access nested properties
-                const homeTeam = game.homeTeam;
-                const awayTeam = game.awayTeam;
-                const gameState = game.gameState; // e.g., 'FUT', 'OFF', 'LIVE'
-                const gameScheduleState = game.gameScheduleState; // e.g., 'OK', 'POST'
+        const processedSchedule = allEvents.map(dayData => {
+            const games = dayData.events.map(event => {
+                const competition = event.competitions[0];
+                const status = competition.status;
+                const competitors = competition.competitors;
                 
-                // Determine time/period
+                const homeTeamData = competitors.find(c => c.homeAway === 'home');
+                const awayTeamData = competitors.find(c => c.homeAway === 'away');
+
                 let period = null;
                 let timeRemaining = null;
-                let startTime = new Date(game.startTimeUTC).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
-
-                if (gameState === 'LIVE' || gameState === 'CRIT') {
-                    period = game.periodDescriptor?.number;
-                    timeRemaining = game.clock?.timeRemaining;
-                } else if (gameState === 'OFF' || gameState === 'FINAL') {
+                if (status.type.state === 'in') { // Game is live
+                    period = status.period;
+                    timeRemaining = status.displayClock;
+                } else if (status.type.completed) {
                     period = 'FINAL';
                 }
 
-                // Determine power play status
-                const isPowerPlay = game.powerPlayStatus?.inSituation || false;
-                const powerPlayTeam = isPowerPlay ? (game.powerPlayStatus.situationFor === 'home' ? homeTeam.abbrev : awayTeam.abbrev) : null;
+                const broadcasts = competition.broadcasts.map(b => b.media.shortName).slice(0, 2);
                 
-                // Get broadcasts
-                const broadcasts = game.tvBroadcasts?.map(b => b.network).slice(0, 2) || [];
-
+                // Power play detection
+                const situation = competition.situation;
+                let isPowerPlay = false;
+                let powerPlayTeam = null;
+                if (situation && situation.situation && situation.situation.text.includes("Power Play")) {
+                    isPowerPlay = true;
+                    // ESPN situation text is like "Team X Power Play". We find which team it is.
+                    powerPlayTeam = situation.situation.text.includes(homeTeamData.team.abbreviation) ? homeTeamData.team.abbreviation : awayTeamData.team.abbreviation;
+                }
+                
                 return {
-                    id: game.id,
+                    id: event.id,
                     homeTeam: {
-                        abbrev: homeTeam?.abbrev || 'N/A',
-                        logo: homeTeam?.logo || '',
-                        score: game.homeTeam?.score || 0,
+                        abbrev: homeTeamData.team.abbreviation,
+                        logo: homeTeamData.team.logo,
+                        score: homeTeamData.score,
                     },
                     awayTeam: {
-                        abbrev: awayTeam?.abbrev || 'N/A',
-                        logo: awayTeam?.logo || '',
-                        score: game.awayTeam?.score || 0,
+                        abbrev: awayTeamData.team.abbreviation,
+                        logo: awayTeamData.team.logo,
+                        score: awayTeamData.score,
                     },
-                    gameState: gameState,
+                    gameState: status.type.name,
                     period: period,
                     timeRemaining: timeRemaining,
-                    startTime: startTime,
+                    startTime: status.type.shortDetail,
                     isPowerPlay: isPowerPlay,
                     powerPlayTeam: powerPlayTeam,
                     broadcasts: broadcasts,
@@ -85,16 +87,17 @@ export default async function handler(req, res) {
             });
 
             return {
-                date: new Date(date), // Return a date object for easier formatting
-                games: processedGames
+                date: new Date(dayData.date),
+                games: games
             };
         });
         
-        console.log('[Scoreboard] Successfully processed all game data.');
+        console.log('[Scoreboard V2] Successfully processed all game data from ESPN.');
         res.status(200).json(processedSchedule);
 
     } catch (error) {
-        console.error("[Scoreboard] Critical error:", error.message);
+        console.error("[Scoreboard V2] Critical error:", error.message);
         res.status(500).json({ error: "Could not fetch scoreboard data.", details: error.message });
     }
 }
+
