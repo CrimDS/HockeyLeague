@@ -126,29 +126,42 @@
         }
         
         function renderProfile(data) {
+            // **FIX**: Make the entire rendering process more defensive against missing data.
+            // Use optional chaining (?.) and nullish coalescing (??) for all properties.
             const isGoalie = data.position === 'G';
-            // **FIX**: Add a safety check for seasonTotals. It might be empty or null for some players.
             const seasonStats = data.seasonTotals && data.seasonTotals.length > 0 ? data.seasonTotals.slice(-1)[0] : null;
+
+            const firstName = data.firstName?.default ?? 'N/A';
+            const lastName = data.lastName?.default ?? '';
+            const sweaterNumber = data.sweaterNumber ?? '-';
+            const position = data.position ?? 'N/A';
+            const teamName = data.teamName?.default ?? 'N/A';
+            const height = data.heightInInches ? `${Math.floor(data.heightInInches / 12)}' ${data.heightInInches % 12}"` : 'N/A';
+            const weight = data.weightInPounds ? `${data.weightInPounds} lbs` : 'N/A';
+            const shootsCatches = data.shootsCatches ?? 'N/A';
+            const birthDate = data.birthDate ?? 'N/A';
+            const birthPlace = `${data.birthCity ?? ''}${data.birthStateProvince ? ', ' + data.birthStateProvince : ''}${data.birthCountry ? ', ' + data.birthCountry : ''}`.replace(/^, /, '');
+
 
             const profileHTML = `
                 <div class="stat-card rounded-lg p-6 md:p-8">
                     <div class="flex flex-col md:flex-row items-center md:items-start text-center md:text-left">
-                        <img class="player-headshot mb-4 md:mb-0 md:mr-8" src="${data.headshot}" alt="${data.firstName.default} ${data.lastName.default}">
+                        <img class="player-headshot mb-4 md:mb-0 md:mr-8" src="${data.headshot}" onerror="this.src='https://placehold.co/180x180/111111/FFFFFF?text=?';" alt="${firstName} ${lastName}">
                         <div class="flex-grow">
                             <div class="flex items-center justify-center md:justify-start">
-                                <h2 class="text-4xl md:text-5xl font-extrabold text-white tracking-tight">${data.firstName.default} ${data.lastName.default}</h2>
-                                <span class="text-6xl md:text-7xl font-black text-gray-700 ml-4">#${data.sweaterNumber}</span>
+                                <h2 class="text-4xl md:text-5xl font-extrabold text-white tracking-tight">${firstName} ${lastName}</h2>
+                                <span class="text-6xl md:text-7xl font-black text-gray-700 ml-4">#${sweaterNumber}</span>
                             </div>
-                            <p class="text-xl text-gray-400">${data.position} | ${data.teamName.default}</p>
+                            <p class="text-xl text-gray-400">${position} | ${teamName}</p>
                             <div class="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4 text-left">
-                                <div><p class="text-xs text-gray-500">Height</p><p class="font-semibold">${Math.floor(data.heightInInches / 12)}' ${data.heightInInches % 12}"</p></div>
-                                <div><p class="text-xs text-gray-500">Weight</p><p class="font-semibold">${data.weightInPounds} lbs</p></div>
-                                <div><p class="text-xs text-gray-500">Catches/Shoots</p><p class="font-semibold">${data.shootsCatches}</p></div>
-                                <div><p class="text-xs text-gray-500">Born</p><p class="font-semibold">${data.birthDate}</p></div>
-                                <div class="col-span-2"><p class="text-xs text-gray-500">Birthplace</p><p class="font-semibold">${data.birthCity}, ${data.birthStateProvince ? data.birthStateProvince + ', ' : ''}${data.birthCountry}</p></div>
+                                <div><p class="text-xs text-gray-500">Height</p><p class="font-semibold">${height}</p></div>
+                                <div><p class="text-xs text-gray-500">Weight</p><p class="font-semibold">${weight}</p></div>
+                                <div><p class="text-xs text-gray-500">Catches/Shoots</p><p class="font-semibold">${shootsCatches}</p></div>
+                                <div><p class="text-xs text-gray-500">Born</p><p class="font-semibold">${birthDate}</p></div>
+                                <div class="col-span-2"><p class="text-xs text-gray-500">Birthplace</p><p class="font-semibold">${birthPlace || 'N/A'}</p></div>
                             </div>
                         </div>
-                        <img class="team-logo hidden lg:block ml-8 self-center" src="${data.teamLogo}" alt="${data.teamName.default} logo">
+                        <img class="team-logo hidden lg:block ml-8 self-center" src="${data.teamLogo}" alt="${teamName} logo">
                     </div>
                 </div>
 
@@ -169,6 +182,7 @@
         }
         
         function renderSkaterStatsTable(stats) {
+            // Add fallbacks for all stats
             return `
                 <table class="min-w-full text-center">
                     <thead class="bg-gray-900 text-xs uppercase tracking-wider">
@@ -180,15 +194,23 @@
                     </thead>
                     <tbody class="text-lg">
                         <tr class="border-t border-gray-800">
-                            <td class="p-3">${stats.gamesPlayed}</td><td class="p-3">${stats.goals}</td><td class="p-3">${stats.assists}</td>
-                            <td class="p-3 font-bold text-yellow-400">${stats.points}</td><td class="p-3">${stats.plusMinus}</td><td class="p-3">${stats.pim}</td>
-                            <td class="p-3">${stats.powerPlayGoals}</td><td class="p-3">${stats.hits}</td><td class="p-3">${stats.blockedShots}</td><td class="p-3">${stats.avgToi}</td>
+                            <td class="p-3">${stats.gamesPlayed ?? 0}</td>
+                            <td class="p-3">${stats.goals ?? 0}</td>
+                            <td class="p-3">${stats.assists ?? 0}</td>
+                            <td class="p-3 font-bold text-yellow-400">${stats.points ?? 0}</td>
+                            <td class="p-3">${stats.plusMinus ?? 0}</td>
+                            <td class="p-3">${stats.pim ?? 0}</td>
+                            <td class="p-3">${stats.powerPlayGoals ?? 0}</td>
+                            <td class="p-3">${stats.hits ?? 0}</td>
+                            <td class="p-3">${stats.blockedShots ?? 0}</td>
+                            <td class="p-3">${stats.avgToi ?? '0:00'}</td>
                         </tr>
                     </tbody>
                 </table>`;
         }
         
         function renderGoalieStatsTable(stats) {
+            // Add fallbacks for all stats
              return `
                 <table class="min-w-full text-center">
                     <thead class="bg-gray-900 text-xs uppercase tracking-wider">
@@ -200,10 +222,13 @@
                     </thead>
                     <tbody class="text-lg">
                         <tr class="border-t border-gray-800">
-                            <td class="p-3">${stats.gamesPlayed}</td><td class="p-3">${stats.wins}</td><td class="p-3">${stats.losses}</td>
-                            <td class="p-3">${stats.otLosses}</td><td class="p-3 font-bold text-yellow-400">${stats.savePctg ? stats.savePctg.toFixed(3) : 'N/A'}</td>
-                            <td class="p-3">${stats.gaa ? stats.gaa.toFixed(2) : 'N/A'}</td>
-                            <td class="p-3">${stats.shutouts}</td>
+                            <td class="p-3">${stats.gamesPlayed ?? 0}</td>
+                            <td class="p-3">${stats.wins ?? 0}</td>
+                            <td class="p-3">${stats.losses ?? 0}</td>
+                            <td class="p-3">${stats.otLosses ?? 0}</td>
+                            <td class="p-3 font-bold text-yellow-400">${stats.savePctg ? stats.savePctg.toFixed(3) : '.000'}</td>
+                            <td class="p-3">${stats.gaa ? stats.gaa.toFixed(2) : '0.00'}</td>
+                            <td class="p-3">${stats.shutouts ?? 0}</td>
                         </tr>
                     </tbody>
                 </table>`;
@@ -214,6 +239,4 @@
 </script>
 </body>
 </html>
-
-
 
