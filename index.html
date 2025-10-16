@@ -205,7 +205,7 @@
                 const response = await fetch('/api/nhl-scores');
                 if (!response.ok) throw new Error('Failed to fetch scoreboard');
                 const data = await response.json();
-                renderTicker(data.games);
+                renderTicker(data.scores);
             } catch (error) {
                 console.error("Error fetching scoreboard:", error);
                 if(tickerContainer) tickerContainer.innerHTML = '<div class="p-4 text-red-500 text-center w-full">Could not load live scores.</div>';
@@ -220,27 +220,18 @@
                  tickerHTML += `<div class="scoreboard-card items-center justify-center text-gray-500 w-full">No Games Scheduled Today</div>`;
             } else {
                 games.forEach(game => {
-                    let gameStatus = '';
-                    if (game.period === 'FINAL') {
-                        gameStatus = 'FINAL';
-                    } else if (game.period && game.timeRemaining) {
-                        gameStatus = `P${game.period} | ${game.timeRemaining}`;
-                    } else {
-                        gameStatus = game.startTime;
-                    }
-
                     tickerHTML += `
                         <div class="scoreboard-card justify-center">
                             <div class="scoreboard-team-row mb-1">
-                                <span class="font-semibold">${game.awayTeam.abbrev}</span>
-                                <span class="font-bold text-lg">${game.awayTeam.score}</span>
+                                <span class="font-semibold">${game.awayTeam}</span>
+                                <span class="font-bold text-lg">${game.awayScore}</span>
                             </div>
                             <div class="scoreboard-team-row">
-                                <span class="font-semibold">${game.homeTeam.abbrev}</span>
-                                <span class="font-bold text-lg">${game.homeTeam.score}</span>
+                                <span class="font-semibold">${game.homeTeam}</span>
+                                <span class="font-bold text-lg">${game.homeScore}</span>
                             </div>
                             <div class="text-xs text-gray-400 mt-2 border-t border-gray-700 pt-1 text-center">
-                                ${gameStatus}
+                                ${game.status}
                             </div>
                         </div>
                     `;
