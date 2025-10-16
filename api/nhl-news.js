@@ -26,14 +26,20 @@ export default async function handler(req, res) {
         const twentyFourHoursAgo = new Date(now.getTime() - (24 * 60 * 60 * 1000));
 
         const headlines = data.articles.map(article => {
+            // **FIX**: Add robust checking to prevent crashes if a link is missing.
+            const link = article.links?.web?.href;
+            if (!article.headline || !link) {
+                return null; // Skip this article if it's missing a headline or link
+            }
+
             const pubDate = new Date(article.published);
             return {
                 title: article.headline,
-                link: article.links.web.href,
+                link: link,
                 pubDate: pubDate,
             };
         }).filter(item => {
-            // Filter for items from the last 24 hours
+            // Filter for items from the last 24 hours and remove any nulls from the previous step
             return item && item.pubDate >= twentyFourHoursAgo;
         });
         
