@@ -20,11 +20,16 @@
         .btn-primary { background-color: #DC143C; color: white; border: 1px solid #DC143C; }
         .btn-primary:hover { background-color: #b81030; }
         .btn-secondary { background-color: #333; color: white; border: 1px solid #333; }
-        .btn-secondary:hover { background-color: #444; }
+        .btn-secondary:hover:not(:disabled) { background-color: #444; }
+        .btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
         .btn-danger { background-color: #b91c1c; color: white; }
         .form-input { background-color: #222; border: 1px solid #444; color: white; border-radius: 6px; padding: 8px 12px; width: 100%; }
         .modal-backdrop { background-color: rgba(0,0,0,0.7); }
         .note-editor.note-frame { border-color: #444; } .note-toolbar { background-color: #222; border-bottom-color: #444; } .note-btn { color: #ddd; background-color: transparent; border-color: transparent; } .note-btn:hover, .note-btn:focus, .note-btn:active { color: #fff; background-color: #333; } .note-editable { background-color: #111; color: #ddd; } .note-popover .popover-content, .note-toolbar { background-color: #222; border-color: #444; } .note-popover .popover-content .note-btn, .note-toolbar .note-btn { color: #ddd; } .note-popover .popover-content .note-btn:hover, .note-toolbar .note-btn:hover { background-color: #333; } .dropdown-menu { background-color: #222; border-color: #444; } .dropdown-menu > li > a { color: #ddd; } .dropdown-menu > li > a:hover { background-color: #333; color: #fff; }
+        .news-headline { border-bottom: 1px solid #333; padding: 0.75rem 0; }
+        .news-headline:last-child { border-bottom: none; }
+        .news-headline a { color: #FFD700; font-weight: 600; text-decoration: none; transition: color 0.2s; }
+        .news-headline a:hover { color: #fff; }
     </style>
 </head>
 <body class="text-gray-300">
@@ -54,11 +59,10 @@
                      <button id="content-editor-btn" class="w-full btn-secondary">Edit Homepage Content</button>
                 </div>
             </div>
-             <div class="card p-6">
-                <h2 class="text-xl font-bold text-white mb-4">AI Tools</h2>
-                <div class="space-y-4">
-                     <button id="generate-news-btn" class="w-full btn-secondary">Generate AI News</button>
-                </div>
+             <div class="card p-6 lg:col-span-1 md:col-span-2">
+                <h2 class="text-xl font-bold text-white mb-4">Recent Hockey News</h2>
+                <div id="news-container" class="min-h-[200px]"></div>
+                <div id="news-pagination" class="flex justify-between items-center mt-4"></div>
             </div>
         </div>
         <div id="editable-content-area" class="mt-8 hidden">
@@ -75,7 +79,8 @@
     <div id="confirmation-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop"><!--...--></div>
 
     <script>
-        let leagueData={},pageContent={},isAdmin=!1,isEditingContent=!1,isGeneratingNews=!1;
+        let leagueData={},pageContent={},isAdmin=!1,isEditingContent=!1;
+        let allNews = [], currentNewsPage = 1, newsPerPage = 5;
         const defaultData = { /* ... */ };
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -85,9 +90,8 @@
                 document.getElementById('admin-panel').classList.remove('hidden');
                 loadData();
                 loadContent();
+                fetchHockeyNews();
                 document.getElementById('content-editor-btn').addEventListener('click', toggleContentEditor);
-                document.getElementById('generate-news-btn').addEventListener('click', generateLeagueNews);
-                // Add all other event listeners for modals here
             }
              document.getElementById('login-form').addEventListener('submit', handleLogin);
         });
@@ -101,7 +105,6 @@
         function loadContent(){
             const e=localStorage.getItem("foxAndHoundsContent");
             pageContent=e?JSON.parse(e):{};
-            // Set content for editors
             document.getElementById('matchups-header').innerHTML = pageContent['matchups-header'] || '<h2 class="text-2xl font-semibold text-white">Weekly Matchups</h2>';
             document.getElementById('standings-header').innerHTML = pageContent['standings-header'] || '<h2 class="text-2xl font-semibold text-white">League Standings</h2>';
         }
@@ -112,7 +115,6 @@
             const editorArea = document.getElementById('editable-content-area');
             btn.textContent = isEditingContent ? 'Save & Exit Editor' : 'Edit Homepage Content';
             editorArea.classList.toggle('hidden');
-
             if (isEditingContent) {
                 $('.editable-content').summernote({
                     focus: true,
@@ -128,7 +130,55 @@
             }
         }
         
-        async function generateLeagueNews(){/* ... same as before ... */}
+        async function fetchHockeyNews() {
+            const container = document.getElementById('news-container');
+            container.innerHTML = `<p class="text-gray-400">Fetching news...</p>`;
+            try {
+                const response = await fetch('/api/hockey-news');
+                const data = await response.json();
+                if (data.headlines && data.headlines.length > 0) {
+                    allNews = data.headlines;
+                    currentNewsPage = 1;
+                    renderNews();
+                } else {
+                    container.innerHTML = `<p class="text-gray-500">No recent news found.</p>`;
+                }
+            } catch (error) {
+                console.error("Error fetching hockey news:", error);
+                container.innerHTML = `<p class="text-red-500">Could not fetch news.</p>`;
+            }
+        }
+
+        function renderNews() {
+            const container = document.getElementById('news-container');
+            const paginationContainer = document.getElementById('news-pagination');
+            container.innerHTML = '';
+            paginationContainer.innerHTML = '';
+
+            const start = (currentNewsPage - 1) * newsPerPage;
+            const end = start + newsPerPage;
+            const paginatedNews = allNews.slice(start, end);
+
+            paginatedNews.forEach(item => {
+                container.innerHTML += `<div class="news-headline"><a href="${item.link}" target="_blank" rel="noopener noreferrer">${item.title}</a></div>`;
+            });
+
+            const totalPages = Math.ceil(allNews.length / newsPerPage);
+            if (totalPages > 1) {
+                paginationContainer.innerHTML = `
+                    <button id="prev-news-btn" class="btn-secondary text-xs">Prev</button>
+                    <span class="text-xs text-gray-400">Page ${currentNewsPage} of ${totalPages}</span>
+                    <button id="next-news-btn" class="btn-secondary text-xs">Next</button>
+                `;
+                const prevBtn = document.getElementById('prev-news-btn');
+                const nextBtn = document.getElementById('next-news-btn');
+                prevBtn.disabled = currentNewsPage === 1;
+                nextBtn.disabled = currentNewsPage === totalPages;
+                prevBtn.addEventListener('click', () => { currentNewsPage--; renderNews(); });
+                nextBtn.addEventListener('click', () => { currentNewsPage++; renderNews(); });
+            }
+        }
+        
         // --- ALL OTHER ADMIN FUNCTIONS (MODALS, SAVING, ETC) ARE NEEDED HERE ---
     </script>
 </body>

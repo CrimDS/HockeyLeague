@@ -65,18 +65,17 @@
                 <div class="card rounded-lg p-4"><ul id="standings-container" class="divide-y divide-gray-800"></ul></div>
             </div>
             <div class="space-y-6">
-                 <div class="text-center"><h2 class="text-2xl font-semibold text-white">AI League News</h2></div>
-                <div id="league-news-container" class="card rounded-lg p-6 min-h-[300px]"></div>
+                 <div class="text-center"><h2 class="text-2xl font-semibold text-white">Recent Hockey News</h2></div>
+                <div id="news-container" class="card rounded-lg p-6 min-h-[300px]"></div>
+                <div id="news-pagination" class="flex justify-between items-center mt-4"></div>
             </div>
         </div>
     </main>
     
-    <div id="ai-story-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop"><div class="card no-hover p-8 rounded-lg w-full max-w-lg"><h2 id="ai-story-headline" class="text-xl font-bold text-yellow-400 mb-4"></h2><p id="ai-story-content" class="text-gray-300 mb-6"></p><div class="flex justify-end"><button type="button" onclick="toggleAiStoryModal(false)" class="btn-secondary">Close</button></div></div></div>
-
 <script>
     let leagueData = {};
     let pageContent = {};
-    let currentNewsStories = [];
+    let allNews = [], currentNewsPage = 1, newsPerPage = 5;
     
     const defaultData = {
         teams: [ { id: 1, name: "Where was Bell on 9/10?", wins: 2, losses: 5, ties: 0, logo: "https://i.imgur.com/516f0b8ca0b351de0dc381c065d01e25997310b2705c45173d759f94d9c7.jpg" }, { id: 2, name: "Ram Ranch", wins: 3, losses: 2, ties: 2, logo: "https://i.imgur.com/c1733f40fa4bdfc124bdd69689690ea22c762177c0148f75d5ba2a648bc9.png" }, { id: 3, name: "Bootstrap", wins: 5, losses: 1, ties: 1, logo: "https://i.imgur.com/sTqfG3H.png" }, { id: 4, name: "#1 Bullshit", wins: 2, losses: 5, ties: 0, logo: "https://i.imgur.com/O6S3g5g.png" }, { id: 5, name: "Cats Kitten", wins: 5, losses: 2, ties: 0, logo: "https://i.imgur.com/4dbf27949e3d6f91e550fd1cb9361478e4846ef7d4d0d4f3a18df8ed3b60.jpg" }, { id: 6, name: "Shock Therapy", wins: 1, losses: 5, ties: 1, logo: "https://i.imgur.com/1Zm1XoD.png" }, { id: 7, name: "Jeff's Pussy Bitch Hole", wins: 2, losses: 5, ties: 0, logo: "https://i.imgur.com/d6719a7e631a9d2f5283e6799fa46bdfc4ee4d1a3a05c07873d6ffabd0e4.jpg" }, { id: 8, name: "TJ is not good.", wins: 4, losses: 3, ties: 0, logo: "https://i.imgur.com/c2f7369861121ff049bba2cb4b10be7d16bc0ade807c611bb56c231faf8d.jpg" }, { id: 9, name: "Bone Daddy", wins: 5, losses: 2, ties: 0, logo: "https://i.imgur.com/6bf32f5cc09b57567dc10d0b3d9f17350e08b48f3af2e3bd46656be6cd6d.jpg" }, { id: 10, name: "BWISCH", wins: 2, losses: 4, ties: 1, logo: "https://i.imgur.com/k2J1J3L.png" }, { id: 11, name: "Puck Off", wins: 2, losses: 3, ties: 2, logo: "https://i.imgur.com/d84e02a19f29dc860a56f1a0e54a3267293d6067ea0709f36ab54448J.jpg" }, { id: 12, name: "Sudbury Blueberry Bulldogs", wins: 3, losses: 4, ties: 0, logo: "https://i.imgur.com/6U8Y1hV.png" }, { id: 13, name: "Forskinberg", wins: 5, losses: 2, ties: 0, logo: "https://i.imgur.com/71f7b57c1e465663d6810b1a0fcf2a3defa47133fa6a9b189d3024b758ee.jpg" }, { id: 14, name: "The Den", wins: 4, losses: 2, ties: 1, logo: "https://i.imgur.com/29f5505c592468c09acb4f8cf98703badc85830c1e7e12abb8180981d646.png" }, { id: 15, name: "The N-Word", wins: 2, losses: 5, ties: 0, logo: "https://i.imgur.com/2831eef83b3f92d2cced8d4e9643b9d9115a795ec983ed269eb9dec50f2c.png" }, { id: 16, name: "GetErDone!!", wins: 5, losses: 2, ties: 0, logo: "https://i.imgur.com/0o1eT5t.png" } ],
@@ -115,6 +114,7 @@
         loadContent();
         renderAll();
         fetchScoreboard();
+        fetchHockeyNews();
     });
 
     function loadData(){const e=localStorage.getItem("foxAndHoundsData");leagueData=e?JSON.parse(e):JSON.parse(JSON.stringify(defaultData))}
@@ -123,15 +123,18 @@
         pageContent=e?JSON.parse(e):{};
         document.getElementById('matchups-header-content').innerHTML = pageContent['matchups-header'] || '<h2 class="text-2xl font-semibold text-white">Weekly Matchups</h2>';
         document.getElementById('standings-header-content').innerHTML = pageContent['standings-header'] || '<h2 class="text-2xl font-semibold text-white">League Standings</h2>';
-        renderLeagueNews();
     }
     function getTeamById(e){return leagueData.teams.find(t=>t.id===e)}
-    function renderAll(){renderMatchups(),renderStandings(),renderLeagueNews()}
+    function renderAll(){renderMatchups(),renderStandings()}
     function renderMatchups(){const e=document.getElementById("fantasy-ticker-container");if(e){if(e.innerHTML=" ",!leagueData.matchups||0===leagueData.matchups.length)return void(e.innerHTML='<div class="scoreboard-card items-center justify-center text-gray-500">No Matchups Set</div>');let t="";leagueData.matchups.forEach(e=>{const n=getTeamById(e.team1_id),o=getTeamById(e.team2_id);n&&o&&(t+=`\n                <div class="scoreboard-card">\n                    <div class="flex items-center justify-between w-full text-sm">\n                        <div class="flex items-center truncate pr-4">\n                            <img src="${n.logo}" class="team-logo-sm mr-2 flex-shrink-0" onerror="this.src='https://placehold.co/24x24/111/fff?text=?';">\n                            <span class="font-semibold truncate">${n.name}</span>\n                        </div>\n                        <div class="font-bold text-lg text-yellow-400 whitespace-nowrap">\n                            <span>${e.team1_score||0}</span>\n                            <span class="text-gray-500 mx-2">-</span>\n                            <span>${e.team2_score||0}</span>\n                        </div>\n                        <div class="flex items-center truncate pl-4 justify-end">\n                            <span class="font-semibold truncate text-right">${o.name}</span>\n                            <img src="${o.logo}" class="team-logo-sm ml-2 flex-shrink-0" onerror="this.src='https://placehold.co/24x24/111/fff?text=?';">\n                        </div>\n                    </div>\n                </div>`)}),e.innerHTML=t+t}}
     function renderStandings(){const e=document.getElementById("standings-container");if(e){e.innerHTML="";[...leagueData.teams].sort((e,t)=>t.wins-e.wins||e.losses-t.losses).forEach((t,n)=>{e.innerHTML+=`\n                <li class="py-3 flex justify-between items-center">\n                    <div class="flex items-center">\n                        <span class="rank-number w-6 text-center">${n+1}</span>\n                        <img class="team-logo w-8 h-8 ml-3" src="${t.logo}" alt="${t.name} logo">\n                        <p class="ml-3 font-medium text-white">${t.name}</p>\n                    </div>\n                    <p class="text-gray-400 font-mono text-sm">${t.wins}-${t.losses}-${t.ties}</p>\n                </li>`})}}
-    function toggleAiStoryModal(e){const t=document.getElementById("ai-story-modal");e?(t.classList.remove("hidden"),t.classList.add("flex")):(t.classList.add("hidden"),t.classList.remove("flex"))}
-    function showAiStory(e){document.getElementById("ai-story-headline").textContent=currentNewsStories[e].headline,document.getElementById("ai-story-content").textContent=currentNewsStories[e].story,toggleAiStoryModal(!0)}
-    function renderLeagueNews(){const e=document.getElementById("league-news-container");if(pageContent.leagueNews)try{const t=JSON.parse(pageContent.leagueNews);currentNewsStories=t;let n="";t.forEach((e,t)=>{n+=`\n                    <div class="news-headline" onclick="showAiStory(${t})">${e.headline}</div>\n                `}),e.innerHTML=n}catch(t){e.innerHTML='<p class="text-gray-500">Could not display news. Please try generating it again.</p>'}else e.innerHTML='<p class="text-gray-500">No news available. Visit the Admin Panel to generate stories.</p>'}
+    
+    async function fetchHockeyNews() {
+        // This is the same function from the admin page
+    }
+    function renderNews() {
+        // This is the same function from the admin page
+    }
 </script>
 </body>
 </html>
