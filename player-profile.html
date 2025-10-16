@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Player Profile - Fox & Hounds Hockey League</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #000000;
+        }
+        .header-glow {
+            border-bottom: 1px solid #333333;
+        }
+        .nav-link {
+            color: #a5a5a5;
+            transition: all 0.2s ease-in-out;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-link:hover {
+            color: #ffffff;
+        }
+        .nav-link.active {
+            color: #ffffff;
+            font-weight: 600;
+            border-bottom-color: #DC143C;
+        }
+        .loader {
+            border: 4px solid #333;
+            border-top: 4px solid #FFD700;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="text-gray-300">
+
+    <div class="min-h-screen flex flex-col">
+
+        <!-- Header -->
+        <header class="bg-black/70 backdrop-blur-sm sticky top-0 z-10 header-glow">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between h-16">
+                    <div class="flex items-center space-x-3">
+                       <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                           <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM5.5 9.5a.5.5 0 01.5-.5h2a.5.5 0 01.5.5v2a.5.5 0 01-.5.5h-2a.5.5 0 01-.5-.5v-2zM12 5.5a.5.5 0 00-.5.5v2a.5.5 0 00.5.5h2a.5.5 0 00.5-.5v-2a.5.5 0 00-.5-.5h-2zM6 12a.5.5 0 00-.5.5v2a.5.5 0 00.5.5h2a.5.5 0 00.5-.5v-2a.5.5 0 00-.5-.5H6zM11.5 12a.5.5 0 01.5-.5h2a.5.5 0 01.5.5v2a.5.5 0 01-.5.5h-2a.5.5 0 01-.5-.5v-2z" clip-rule="evenodd" />
+                        </svg>
+                        <h1 class="text-2xl font-bold text-white">Fox & Hounds Hockey League</h1>
+                    </div>
+                    <nav class="flex items-center space-x-6">
+                        <a href="index.html" class="nav-link py-5">League Home</a>
+                        <a href="player-stats.html" class="nav-link active py-5">Player Stats</a>
+                    </nav>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Main Content -->
+        <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10">
+            <div class="mb-6">
+                <a href="player-stats.html" class="text-sm text-yellow-400 hover:text-yellow-300">&larr; Back to Player Stats</a>
+            </div>
+            <div id="profile-container">
+                <div id="loader-container" class="min-h-[400px] flex items-center justify-center">
+                    <div class="loader"></div>
+                </div>
+                 <!-- Player profile content will be loaded here -->
+            </div>
+        </main>
+    </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const profileContainer = document.getElementById('profile-container');
+        const urlParams = new URLSearchParams(window.location.search);
+        const playerId = urlParams.get('id');
+
+        if (playerId) {
+            // For now, we'll just display a placeholder.
+            // A future step would be to create a new API endpoint to fetch specific player data.
+            profileContainer.innerHTML = `
+                <div class="text-center p-8 bg-[#111] border border-gray-800 rounded-lg">
+                    <h2 class="text-2xl font-bold text-white">Player Profile</h2>
+                    <p class="text-gray-400 mt-2">Displaying information for player with ID: <span class="font-mono text-yellow-400">${playerId}</span></p>
+                    <p class="mt-4 text-sm text-gray-500">(Full profile page coming soon!)</p>
+                </div>
+            `;
+        } else {
+            profileContainer.innerHTML = `
+                <div class="text-center p-8 bg-[#111] border border-gray-800 rounded-lg">
+                    <h2 class="text-2xl font-bold text-white text-red-500">Error</h2>
+                    <p class="text-gray-400 mt-2">No player ID was provided.</p>
+                </div>
+            `;
+        }
+    });
+</script>
+</body>
+</html>

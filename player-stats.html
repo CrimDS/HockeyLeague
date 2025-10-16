@@ -89,6 +89,9 @@
             font-weight: 600;
             color: #FFD700; /* Gold */
         }
+        .clickable-row {
+            cursor: pointer;
+        }
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
@@ -156,6 +159,7 @@
                 <table id="skaters-table" class="min-w-full divide-y divide-gray-800 hidden">
                     <thead class="bg-gray-900">
                         <tr>
+                            <th class="py-3.5 px-3 text-left text-sm font-semibold text-white">#</th>
                             <th class="py-3.5 px-4 text-left text-sm font-semibold text-white table-header-cell" data-sort="name">Player</th>
                             <th class="py-3.5 px-3 text-left text-sm font-semibold text-white table-header-cell" data-sort="team">Team</th>
                             <th class="py-3.5 px-3 text-left text-sm font-semibold text-white table-header-cell" data-sort="gamesPlayed">GP</th>
@@ -179,6 +183,7 @@
                 <table id="goalies-table" class="min-w-full divide-y divide-gray-800 hidden">
                      <thead class="bg-gray-900">
                         <tr>
+                            <th class="py-3.5 px-3 text-left text-sm font-semibold text-white">#</th>
                             <th class="py-3.5 px-4 text-left text-sm font-semibold text-white table-header-cell" data-sort="name">Player</th>
                             <th class="py-3.5 px-3 text-left text-sm font-semibold text-white table-header-cell" data-sort="team">Team</th>
                             <th class="py-3.5 px-3 text-left text-sm font-semibold text-white table-header-cell" data-sort="gamesPlayed">GP</th>
@@ -338,10 +343,7 @@
         }
 
         function getPaginatedData(data) {
-             const query = searchInput.value.toLowerCase();
-             const filtered = data.filter(p => p.name.toLowerCase().includes(query));
-
-             const sorted = filtered.sort((a, b) => {
+             const sorted = [...data].sort((a, b) => {
                 const valA = a[currentSort.key];
                 const valB = b[currentSort.key];
 
@@ -358,13 +360,18 @@
                     return valA < valB ? 1 : -1;
                 }
              });
+             
+             sorted.forEach((p, index) => p.rank = index + 1);
+
+             const query = searchInput.value.toLowerCase();
+             const filtered = sorted.filter(p => p.name.toLowerCase().includes(query));
 
             const start = (currentPage - 1) * rowsPerPage;
             const end = start + rowsPerPage;
             
             return {
-                paginatedItems: sorted.slice(start, end),
-                totalItems: sorted.length
+                paginatedItems: filtered.slice(start, end),
+                totalItems: filtered.length
             };
         }
         
@@ -383,7 +390,8 @@
             paginatedItems.forEach(player => {
                 const headshotUrl = `https://assets.nhle.com/mugs/nhl/latest/${player.id}.png`;
                 const row = `
-                    <tr class="hover:bg-gray-800">
+                    <tr class="hover:bg-gray-800 clickable-row" onclick="window.location.href='player-profile.html?id=${player.id}'">
+                        <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-400">${player.rank}</td>
                         <td class="px-4 py-2 whitespace-nowrap text-sm font-medium text-white">
                             <div class="flex items-center">
                                 <img class="h-8 w-8 rounded-full object-cover" src="${headshotUrl}" onerror="this.src='https://placehold.co/100x100/111111/FFFFFF?text=?';" alt="${player.name}">
@@ -427,7 +435,8 @@
             paginatedItems.forEach(player => {
                 const headshotUrl = `https://assets.nhle.com/mugs/nhl/latest/${player.id}.png`;
                 const row = `
-                    <tr class="hover:bg-gray-800">
+                    <tr class="hover:bg-gray-800 clickable-row" onclick="window.location.href='player-profile.html?id=${player.id}'">
+                         <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-400">${player.rank}</td>
                          <td class="px-4 py-2 whitespace-nowrap text-sm font-medium text-white">
                             <div class="flex items-center">
                                 <img class="h-8 w-8 rounded-full object-cover" src="${headshotUrl}" onerror="this.src='https://placehold.co/100x100/111111/FFFFFF?text=?';" alt="${player.name}">
