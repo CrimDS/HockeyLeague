@@ -13,28 +13,15 @@
     <script src="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-lite.min.js"></script>
 
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #000000;
-        }
-        .card {
-            background-color: #111111;
-            border: 1px solid #333333;
-            transition: all 0.2s ease-in-out;
-        }
+        body { font-family: 'Inter', sans-serif; background-color: #000000; }
+        .card { background-color: #111111; border: 1px solid #333333; transition: all 0.2s ease-in-out; }
         .header-glow { border-bottom: 1px solid #333; }
-        .team-logo {
-            width: 48px; height: 48px; border-radius: 50%;
-            object-fit: cover; border: 2px solid #333333;
-        }
+        .team-logo { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 2px solid #333333; }
         .rank-number { font-weight: 600; color: #DC143C; }
         
         /* Editor & Admin Styles */
         .modal-backdrop { background-color: rgba(0,0,0,0.7); }
-        .admin-btn, .btn-primary, .btn-secondary, .btn-danger {
-            padding: 8px 16px; border-radius: 6px; font-weight: 600;
-            cursor: pointer; transition: all 0.2s;
-        }
+        .admin-btn, .btn-primary, .btn-secondary, .btn-danger { padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
         .admin-btn { background-color: transparent; border: 1px solid #FFD700; color: #FFD700; }
         .admin-btn:hover:not(:disabled) { background-color: rgba(255, 215, 0, 0.1); }
         .admin-btn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -47,47 +34,28 @@
         body.admin-mode .admin-controls { display: flex; }
         
         /* Summernote Dark Theme */
-        .note-editor.note-frame { border-color: #444; }
-        .note-toolbar { background-color: #222; border-bottom-color: #444; }
-        .note-btn { color: #ddd; background-color: transparent; border-color: transparent; }
-        .note-btn:hover, .note-btn:focus, .note-btn:active { color: #fff; background-color: #333; }
-        .note-editable { background-color: #111; color: #ddd; }
-        .note-popover .popover-content, .note-toolbar { background-color: #222; border-color: #444; }
-        .note-popover .popover-content .note-btn, .note-toolbar .note-btn { color: #ddd; }
-        .note-popover .popover-content .note-btn:hover, .note-toolbar .note-btn:hover { background-color: #333; }
-        .dropdown-menu { background-color: #222; border-color: #444; }
-        .dropdown-menu > li > a { color: #ddd; }
-        .dropdown-menu > li > a:hover { background-color: #333; color: #fff; }
+        .note-editor.note-frame { border-color: #444; } .note-toolbar { background-color: #222; border-bottom-color: #444; } .note-btn { color: #ddd; background-color: transparent; border-color: transparent; } .note-btn:hover, .note-btn:focus, .note-btn:active { color: #fff; background-color: #333; } .note-editable { background-color: #111; color: #ddd; } .note-popover .popover-content, .note-toolbar { background-color: #222; border-color: #444; } .note-popover .popover-content .note-btn, .note-toolbar .note-btn { color: #ddd; } .note-popover .popover-content .note-btn:hover, .note-toolbar .note-btn:hover { background-color: #333; } .dropdown-menu { background-color: #222; border-color: #444; } .dropdown-menu > li > a { color: #ddd; } .dropdown-menu > li > a:hover { background-color: #333; color: #fff; }
 
         /* Scoreboard Ticker Styles */
-        .ticker-wrapper { overflow: hidden; }
-        .nhl-ticker { background-color: #0a0a0a; border-bottom: 1px solid #333; }
-        .fantasy-ticker { background-color: #111; border-bottom: 1px solid #333; }
-        .ticker-container { display: flex; align-items: stretch; white-space: nowrap; }
-        .nhl-ticker .ticker-container { animation: scroll 120s linear infinite; }
-        .fantasy-ticker .ticker-container { animation: scroll-fantasy 80s linear infinite; }
-        .ticker-container:hover { animation-play-state: paused; }
-        @keyframes scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
-        @keyframes scroll-fantasy { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+        .ticker-wrapper { overflow: hidden; } .nhl-ticker { background-color: #0a0a0a; border-bottom: 1px solid #333; } .fantasy-ticker { background-color: #111; border-bottom: 1px solid #333; } .ticker-container { display: flex; align-items: stretch; white-space: nowrap; } .nhl-ticker .ticker-container { animation: scroll 120s linear infinite; } .fantasy-ticker .ticker-container { animation: scroll-fantasy 80s linear infinite; } .ticker-container:hover { animation-play-state: paused; }
+        @keyframes scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } } @keyframes scroll-fantasy { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
         
         .scoreboard-card { display: inline-flex; flex-direction: column; padding: 12px 16px; border-right: 1px solid #333; width: 240px; font-size: 12px; }
         .scoreboard-team-row { display: flex; justify-content: space-between; align-items: center; }
         .team-logo-sm { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; }
         
-        .fantasy-ticker .scoreboard-card {
-            width: auto; flex-shrink: 0; padding: 12px 24px; height: 72px;
-            flex-direction: row; align-items: center; justify-content: center;
-        }
+        .fantasy-ticker .scoreboard-card { width: auto; flex-shrink: 0; padding: 12px 24px; height: 72px; flex-direction: row; align-items: center; justify-content: center; }
+        
+        /* AI News Styles */
+        .news-item { border-bottom: 1px solid #333; padding: 0.75rem 0; }
+        .news-item:last-child { border-bottom: none; }
+        .news-item h3 { font-weight: 600; color: #FFD700; }
     </style>
 </head>
 <body class="text-gray-300">
 
-    <!-- NHL Scoreboard Ticker -->
-    <div class="ticker-wrapper nhl-ticker">
-        <div id="ticker-container" class="ticker-container"></div>
-    </div>
+    <div class="ticker-wrapper nhl-ticker"><div id="ticker-container" class="ticker-container"></div></div>
 
-    <!-- Header -->
     <header class="bg-black/70 backdrop-blur-sm sticky top-0 z-40 header-glow">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
@@ -109,7 +77,7 @@
     <div class="ticker-wrapper fantasy-ticker"><div id="fantasy-ticker-container" class="ticker-container"></div></div>
     
     <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div class="max-w-2xl mx-auto">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div class="space-y-6">
                  <div class="flex justify-between items-center px-2">
                     <div id="standings-header" class="editable-content p-1 flex-grow text-center"><h2 class="text-2xl font-semibold text-white">League Standings</h2></div>
@@ -117,10 +85,16 @@
                 </div>
                 <div class="card rounded-lg p-4"><ul id="standings-container" class="divide-y divide-gray-800"></ul></div>
             </div>
+            <div class="space-y-6">
+                 <div class="flex justify-between items-center px-2">
+                    <h2 class="text-2xl font-semibold text-white">AI League News</h2>
+                    <div class="admin-controls"><button id="generate-news-btn" onclick="generateLeagueNews()" class="admin-btn text-sm">Generate News</button></div>
+                </div>
+                <div id="league-news-container" class="card rounded-lg p-6 min-h-[300px]"></div>
+            </div>
         </div>
     </main>
     
-    <!-- All modals are included in the full script but hidden here for brevity -->
     <div id="admin-login-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop"><!--...--></div>
     <div id="edit-matchup-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop"><!--...--></div>
     <div id="team-manager-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop"><!--...--></div>
@@ -128,65 +102,10 @@
     <div id="confirmation-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop"><!--...--></div>
 
 <script>
-    let leagueData={},pageContent={},isAdmin=!1,isEditingContent=!1;
+    let leagueData={},pageContent={},isAdmin=!1,isEditingContent=!1,isGeneratingNews=!1;
     const defaultData={teams:[{id:1,name:"Where was Bell on 9/10?",wins:2,losses:5,ties:0,logo:"https://i.imgur.com/516f0b8ca0b351de0dc381c065d01e25997310b2705c45173d759f94d9c7.jpg"},{id:2,name:"Ram Ranch",wins:3,losses:2,ties:2,logo:"https://i.imgur.com/c1733f40fa4bdfc124bdd69689690ea22c762177c0148f75d5ba2a648bc9.png"},{id:3,name:"Bootstrap",wins:5,losses:1,ties:1,logo:"https://i.imgur.com/sTqfG3H.png"},{id:4,name:"#1 Bullshit",wins:2,losses:5,ties:0,logo:"https://i.imgur.com/O6S3g5g.png"},{id:5,name:"Cats Kitten",wins:5,losses:2,ties:0,logo:"https://i.imgur.com/4dbf27949e3d6f91e550fd1cb9361478e4846ef7d4d0d4f3a18df8ed3b60.jpg"},{id:6,name:"Shock Therapy",wins:1,losses:5,ties:1,logo:"https://i.imgur.com/1Zm1XoD.png"},{id:7,name:"Jeff's Pussy Bitch Hole",wins:2,losses:5,ties:0,logo:"https://i.imgur.com/d6719a7e631a9d2f5283e6799fa46bdfc4ee4d1a3a05c07873d6ffabd0e4.jpg"},{id:8,name:"TJ is not good.",wins:4,losses:3,ties:0,logo:"https://i.imgur.com/c2f7369861121ff049bba2cb4b10be7d16bc0ade807c611bb56c231faf8d.jpg"},{id:9,name:"Bone Daddy",wins:5,losses:2,ties:0,logo:"https://i.imgur.com/6bf32f5cc09b57567dc10d0b3d9f17350e08b48f3af2e3bd46656be6cd6d.jpg"},{id:10,name:"BWISCH",wins:2,losses:4,ties:1,logo:"https://i.imgur.com/k2J1J3L.png"},{id:11,name:"Puck Off",wins:2,losses:3,ties:2,logo:"https://i.imgur.com/d84e02a19f29dc860a56f1a0e54a3267293d6067ea0709f36ab54448J.jpg"},{id:12,name:"Sudbury Blueberry Bulldogs",wins:3,losses:4,ties:0,logo:"https://i.imgur.com/6U8Y1hV.png"},{id:13,name:"Forskinberg",wins:5,losses:2,ties:0,logo:"https://i.imgur.com/71f7b57c1e465663d6810b1a0fcf2a3defa47133fa6a9b189d3024b758ee.jpg"},{id:14,name:"The Den",wins:4,losses:2,ties:1,logo:"https://i.imgur.com/29f5505c592468c09acb4f8cf98703badc85830c1e7e12abb8180981d646.png"},{id:15,name:"The N-Word",wins:2,losses:5,ties:0,logo:"https://i.imgur.com/2831eef83b3f92d2cced8d4e9643b9d9115a795ec983ed269eb9dec50f2c.png"},{id:16,name:"GetErDone!!",wins:5,losses:2,ties:0,logo:"https://i.imgur.com/0o1eT5t.png"}],matchups:[{id:1,team1_id:1,team2_id:2,team1_score:2,team2_score:2},{id:2,team1_id:3,team2_id:4,team1_score:4,team2_score:3},{id:3,team1_id:5,team2_id:6,team1_score:2,team2_score:4},{id:4,team1_id:7,team2_id:8,team1_score:4,team2_score:0},{id:5,team1_id:9,team2_id:10,team1_score:2,team2_score:5},{id:6,team1_id:11,team2_id:12,team1_score:0,team2_score:6},{id:7,team1_id:13,team2_id:14,team1_score:3,team2_score:3},{id:8,team1_id:15,team2_id:16,team1_score:3,team2_score:4}]};
 
-    document.addEventListener("DOMContentLoaded", () => {
-        const tickerContainer = document.getElementById('ticker-container');
-        
-        async function fetchScoreboard() {
-            try {
-                const response = await fetch('/api/nhl-scores');
-                if (!response.ok) throw new Error('Failed to fetch scoreboard');
-                const data = await response.json();
-                renderTicker(data.scores);
-            } catch (error) {
-                console.error("Error fetching scoreboard:", error);
-                if (tickerContainer) tickerContainer.innerHTML = '<div class="p-4 text-red-500 text-center w-full">Could not load live scores.</div>';
-            }
-        }
-
-        function renderTicker(games) {
-            if (!tickerContainer) return;
-            let tickerHTML = '';
-            
-            if (!games || games.length === 0) {
-                 tickerHTML = `<div class="scoreboard-card items-center justify-center text-gray-500 w-full">No Games Scheduled Today</div>`;
-            } else {
-                games.forEach(game => {
-                    tickerHTML += `
-                        <div class="scoreboard-card justify-center">
-                            <div class="scoreboard-team-row mb-1">
-                                <span class="font-semibold">${game.awayTeam}</span>
-                                <span class="font-bold text-lg">${game.awayScore}</span>
-                            </div>
-                            <div class="scoreboard-team-row">
-                                <span class="font-semibold">${game.homeTeam}</span>
-                                <span class="font-bold text-lg">${game.homeScore}</span>
-                            </div>
-                            <div class="text-xs text-gray-400 mt-2 border-t border-gray-700 pt-1 text-center">
-                                ${game.status}
-                            </div>
-                        </div>
-                    `;
-                });
-            }
-            tickerContainer.innerHTML = tickerHTML + tickerHTML;
-        }
-        
-        loadData();
-        loadContent();
-        checkAdminState();
-        renderAll();
-        fetchScoreboard();
-        
-        document.getElementById('content-editor-btn').addEventListener('click', toggleContentEditor);
-        document.getElementById('login-form').addEventListener('submit', handleLogin);
-        document.getElementById('edit-matchup-form').addEventListener('submit', handleSaveMatchup);
-        document.getElementById('edit-team-form').addEventListener('submit', handleSaveTeam);
-    });
-
-    function loadData(){const e=localStorage.getItem("foxAndHoundsData");leagueData=e?JSON.parse(e):JSON.parse(JSON.stringify(defaultData))}function saveData(){localStorage.setItem("foxAndHoundsData",JSON.stringify(leagueData))}function loadContent(){const e=localStorage.getItem("foxAndHoundsContent");pageContent=e?JSON.parse(e):{},document.querySelectorAll(".editable-content").forEach(e=>{pageContent[e.id]&&(e.innerHTML=pageContent[e.id])})}function getTeamById(e){return leagueData.teams.find(t=>t.id===e)}function renderAll(){renderMatchups(),renderStandings(),toggleAdminUI()}function renderMatchups(){const e=document.getElementById("fantasy-ticker-container");if(e){if(e.innerHTML=" ",!leagueData.matchups||0===leagueData.matchups.length)return void(e.innerHTML='<div class="scoreboard-card items-center justify-center text-gray-500">No Matchups Set</div>');let t="";leagueData.matchups.forEach(e=>{const n=getTeamById(e.team1_id),o=getTeamById(e.team2_id);n&&o&&(t+=`\n                <div class="scoreboard-card">\n                    <div class="flex items-center justify-between w-full text-sm">\n                        <div class="flex items-center truncate pr-4">\n                            <img src="${n.logo}" class="team-logo-sm mr-2 flex-shrink-0" onerror="this.src='https://placehold.co/24x24/111/fff?text=?';">\n                            <span class="font-semibold truncate">${n.name}</span>\n                        </div>\n                        <div class="font-bold text-lg text-yellow-400 whitespace-nowrap">\n                            <span>${e.team1_score||0}</span>\n                            <span class="text-gray-500 mx-2">-</span>\n                            <span>${e.team2_score||0}</span>\n                        </div>\n                        <div class="flex items-center truncate pl-4 justify-end">\n                            <span class="font-semibold truncate text-right">${o.name}</span>\n                            <img src="${o.logo}" class="team-logo-sm ml-2 flex-shrink-0" onerror="this.src='https://placehold.co/24x24/111/fff?text=?';">\n                        </div>\n                    </div>\n                </div>`)}),e.innerHTML=t+t}}function renderStandings(){const e=document.getElementById("standings-container");if(e){e.innerHTML="";[...leagueData.teams].sort((e,t)=>t.wins-e.wins||e.losses-t.losses).forEach((t,n)=>{e.innerHTML+=`\n                <li class="py-3 flex justify-between items-center">\n                    <div class="flex items-center">\n                        <span class="rank-number w-6 text-center">${n+1}</span>\n                        <img class="team-logo w-8 h-8 ml-3" src="${t.logo}" alt="${t.name} logo">\n                        <p class="ml-3 font-medium text-white">${t.name}</p>\n                    </div>\n                    <p class="text-gray-400 font-mono text-sm">${t.wins}-${t.losses}-${t.ties}</p>\n                </li>`})}}function checkAdminState(){"true"===sessionStorage.getItem("isAdmin")&&(isAdmin=!0)}function toggleAdminUI(){const e=document.querySelector("body"),t=document.getElementById("admin-login-btn"),n=document.getElementById("admin-logout-btn");isAdmin?(e.classList.add("admin-mode"),t.classList.add("hidden"),n.classList.remove("hidden")):(e.classList.remove("admin-mode"),t.classList.remove("hidden"),n.classList.add("hidden"))}function toggleContentEditor(){isEditingContent=!isEditingContent;const e=document.getElementById("content-editor-btn");e.textContent=isEditingContent?"Save & Exit":"Edit Page Content",e.classList.toggle("bg-yellow-400"),e.classList.toggle("text-black"),isEditingContent?$(".editable-content").summernote({focus:!0,toolbar:[["style",["bold","italic","underline"]],["para",["ul","ol"]],["insert",["link"]],["view",["undo","redo"]]]}):(document.querySelectorAll(".editable-content").forEach(e=>{pageContent[e.id]=$(e).summernote("code"),$(e).summernote("destroy")}),localStorage.setItem("foxAndHoundsContent",JSON.stringify(pageContent)))}
+    document.addEventListener("DOMContentLoaded",()=>{const e=document.getElementById("ticker-container");async function t(){try{const t=await fetch("/api/nhl-scores");if(!t.ok)throw new Error("Failed to fetch scoreboard");const n=await t.json();o(n.games)}catch(t){console.error("Error fetching scoreboard:",t),e&&(e.innerHTML='<div class="p-4 text-red-500 text-center w-full">Could not load live scores.</div>')}}function o(t){if(e){let o="";o+=t&&0!==t.length?t.map(e=>{let t="";return t=e.period&&e.timeRemaining?`P${e.period} | ${e.timeRemaining}`:e.period||e.startTime,`\n                        <div class="scoreboard-card justify-center">\n                            <div class="scoreboard-team-row mb-1">\n                                <span class="font-semibold">${e.awayTeam.abbrev}</span>\n                                <span class="font-bold text-lg">${e.awayTeam.score}</span>\n                            </div>\n                            <div class="scoreboard-team-row">\n                                <span class="font-semibold">${e.homeTeam.abbrev}</span>\n                                <span class="font-bold text-lg">${e.homeTeam.score}</span>\n                            </div>\n                            <div class="text-xs text-gray-400 mt-2 border-t border-gray-700 pt-1 text-center">\n                                ${t}\n                            </div>\n                        </div>\n                    `}).join(""):`<div class="scoreboard-card items-center justify-center text-gray-500 w-full">No Games Scheduled Today</div>`,e.innerHTML=o+o}}loadData(),loadContent(),checkAdminState(),renderAll(),t(),document.getElementById("content-editor-btn").addEventListener("click",toggleContentEditor),document.getElementById("login-form").addEventListener("submit",handleLogin),document.getElementById("edit-matchup-form").addEventListener("submit",handleSaveMatchup),document.getElementById("edit-team-form").addEventListener("submit",handleSaveTeam)});function loadData(){const e=localStorage.getItem("foxAndHoundsData");leagueData=e?JSON.parse(e):JSON.parse(JSON.stringify(defaultData))}function saveData(){localStorage.setItem("foxAndHoundsData",JSON.stringify(leagueData))}function loadContent(){const e=localStorage.getItem("foxAndHoundsContent");pageContent=e?JSON.parse(e):{},document.querySelectorAll(".editable-content").forEach(e=>{pageContent[e.id]&&(e.innerHTML=pageContent[e.id])}),renderLeagueNews()}function getTeamById(e){return leagueData.teams.find(t=>t.id===e)}function renderAll(){renderMatchups(),renderStandings(),toggleAdminUI(),renderLeagueNews()}function renderMatchups(){const e=document.getElementById("fantasy-ticker-container");if(e){if(e.innerHTML=" ",!leagueData.matchups||0===leagueData.matchups.length)return void(e.innerHTML='<div class="scoreboard-card items-center justify-center text-gray-500">No Matchups Set</div>');let t="";leagueData.matchups.forEach(e=>{const n=getTeamById(e.team1_id),o=getTeamById(e.team2_id);n&&o&&(t+=`\n                <div class="scoreboard-card">\n                    <div class="flex items-center justify-between w-full text-sm">\n                        <div class="flex items-center truncate pr-4">\n                            <img src="${n.logo}" class="team-logo-sm mr-2 flex-shrink-0" onerror="this.src='https://placehold.co/24x24/111/fff?text=?';">\n                            <span class="font-semibold truncate">${n.name}</span>\n                        </div>\n                        <div class="font-bold text-lg text-yellow-400 whitespace-nowrap">\n                            <span>${e.team1_score||0}</span>\n                            <span class="text-gray-500 mx-2">-</span>\n                            <span>${e.team2_score||0}</span>\n                        </div>\n                        <div class="flex items-center truncate pl-4 justify-end">\n                            <span class="font-semibold truncate text-right">${o.name}</span>\n                            <img src="${o.logo}" class="team-logo-sm ml-2 flex-shrink-0" onerror="this.src='https://placehold.co/24x24/111/fff?text=?';">\n                        </div>\n                    </div>\n                </div>`)}),e.innerHTML=t+t}}function renderStandings(){const e=document.getElementById("standings-container");if(e){e.innerHTML="";[...leagueData.teams].sort((e,t)=>t.wins-e.wins||e.losses-t.losses).forEach((t,n)=>{e.innerHTML+=`\n                <li class="py-3 flex justify-between items-center">\n                    <div class="flex items-center">\n                        <span class="rank-number w-6 text-center">${n+1}</span>\n                        <img class="team-logo w-8 h-8 ml-3" src="${t.logo}" alt="${t.name} logo">\n                        <p class="ml-3 font-medium text-white">${t.name}</p>\n                    </div>\n                    <p class="text-gray-400 font-mono text-sm">${t.wins}-${t.losses}-${t.ties}</p>\n                </li>`})}}function checkAdminState(){"true"===sessionStorage.getItem("isAdmin")&&(isAdmin=!0)}function toggleAdminUI(){const e=document.querySelector("body"),t=document.getElementById("admin-login-btn"),n=document.getElementById("admin-logout-btn");isAdmin?(e.classList.add("admin-mode"),t.classList.add("hidden"),n.classList.remove("hidden")):(e.classList.remove("admin-mode"),t.classList.remove("hidden"),n.classList.add("hidden"))}function toggleContentEditor(){isEditingContent=!isEditingContent;const e=document.getElementById("content-editor-btn");e.textContent=isEditingContent?"Save & Exit":"Edit Page Content",e.classList.toggle("bg-yellow-400"),e.classList.toggle("text-black"),isEditingContent?$(".editable-content").summernote({focus:!0,toolbar:[["style",["bold","italic","underline"]],["para",["ul","ol"]],["insert",["link"]],["view",["undo","redo"]]]}):(document.querySelectorAll(".editable-content").forEach(e=>{pageContent[e.id]=$(e).summernote("code"),$(e).summernote("destroy")}),localStorage.setItem("foxAndHoundsContent",JSON.stringify(pageContent)))}function renderLeagueNews(){const e=document.getElementById("league-news-container");if(pageContent.leagueNews){try{const t=JSON.parse(pageContent.leagueNews);let n="";t.forEach(e=>{n+=`\n                    <details class="news-item border-b border-gray-700 last:border-b-0">\n                        <summary>${e.headline}</summary>\n                        <p>${e.story}</p>\n                    </details>\n                `}),e.innerHTML=n}catch(t){e.innerHTML=`<p class="text-gray-500">Could not display news. Please try generating it again.</p>`}}else e.innerHTML='<p class="text-gray-500">Click "Generate News" to get the latest league buzz.</p>'}async function generateLeagueNews(){if(isGeneratingNews)return;isGeneratingNews=!0;const e=document.getElementById("generate-news-btn"),t=document.getElementById("league-news-container");e.disabled=!0,e.textContent="Generating...",t.innerHTML='<p class="text-gray-400">Thinking up some hot takes...</p>';const n="You are a witty and slightly sarcastic sports journalist for a fantasy hockey league called 'Fox & Hounds'. Your tone is informal and fun. You MUST respond with a valid JSON array containing exactly 5 objects. Each object must have two keys: a 'headline' (a short, catchy title) and a 'story' (a 1-2 sentence blurb).",o=JSON.stringify({standings:leagueData.teams.map(e=>({name:e.name,record:`${e.wins}-${e.losses}-${e.ties}`})),matchups:leagueData.matchups.map(e=>{const t=getTeamById(e.team1_id),n=getTeamById(e.team2_id);return`${t.name} (${e.team1_score}) vs ${n.name} (${e.team2_score})`})}),a=`Based on the following data, write 5 short, engaging news blurbs about the week's action. Mention standout performances, surprising upsets, or teams on a hot streak. Here is the data in JSON format:\n\n${o}`;try{const o={contents:[{parts:[{text:a}]}],systemInstruction:{parts:[{text:n}]},generationConfig:{responseMimeType:"application/json",responseSchema:{type:"ARRAY",items:{type:"OBJECT",properties:{headline:{type:"STRING"},story:{type:"STRING"}},required:["headline","story"]}}}},s=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(o)});if(!s.ok)throw new Error(`API failed with status ${s.status}`);const d=await s.json(),l=d.candidates[0].content.parts[0].text;pageContent.leagueNews=l,localStorage.setItem("foxAndHoundsContent",JSON.stringify(pageContent)),renderLeagueNews()}catch(n){console.error("AI News Generation Error:",n),t.innerHTML='<p class="text-red-500">Could not generate news. Please try again later.</p>'}finally{isGeneratingNews=!1,e.disabled=!1,e.textContent="Generate News"}}async function handleSaveMatchup(e){event.preventDefault();/* existing save logic */ saveData();renderAll(),toggleEditMatch-upModal(!1),await generateLeagueNews()}async function handleSaveTeam(e){event.preventDefault();/* existing save logic */ saveData();renderAll(),renderTeamList(),toggleEditTeamModal(!1),await generateLeagueNews()}
 </script>
 </body>
 </html>
