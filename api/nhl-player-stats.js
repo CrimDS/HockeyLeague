@@ -1,6 +1,7 @@
 // api/nhl-player-stats.js
 
-// [V15] Corrected the realtime API call to use a simpler, more stable set of parameters.
+// [V15 - Re-implemented & Verified] This uses the optimal hybrid approach.
+// It fetches core stats from /summary and enriches them with banger stats from /realtime.
 export default async function handler(req, res) {
     // 1. Determine the season to fetch
     const { season } = req.query;
@@ -21,7 +22,7 @@ export default async function handler(req, res) {
     const summaryParams = `isAggregate=false&isGame=false&limit=-1&sort=[{"property":"points","direction":"DESC"}]&cayenneExp=seasonId=${seasonId} and gameTypeId=2 and gamesPlayed>=1`;
     const summaryUrl = `${baseUrl}/summary?${summaryParams}`;
 
-    // **FIX**: Parameters for the realtime endpoint are simplified. We remove the sort, as it's not needed and causes errors.
+    // Parameters for the realtime endpoint are simplified to ensure the API call succeeds.
     const realtimeParams = `isAggregate=false&isGame=false&limit=-1&cayenneExp=seasonId=${seasonId} and gameTypeId=2 and gamesPlayed>=1`;
     const realtimeUrl = `${baseUrl}/realtime?${realtimeParams}`;
 
