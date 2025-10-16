@@ -1,6 +1,6 @@
 // api/nhl-player-stats.js
 
-// [V8] This version uses a more robust data consolidation strategy to prevent "all zeros" errors.
+// [V9] Final version. This uses a comprehensive merging strategy to build a complete player list from all available stat categories.
 export default async function handler(req, res) {
     // 1. Determine the season to fetch
     const { season } = req.query;
@@ -18,7 +18,7 @@ export default async function handler(req, res) {
     const url = `https://api-web.nhle.com/v1/skater-stats-leaders/${seasonId}/2`; // '2' for regular season
 
     try {
-        console.log(`[V8] Fetching stats from modern NHL API for season ${seasonId}: ${url}`);
+        console.log(`[V9] Fetching stats from modern NHL API for season ${seasonId}: ${url}`);
         
         const response = await fetch(url, {
             headers: {
@@ -28,77 +28,80 @@ export default async function handler(req, res) {
 
         if (!response.ok) {
             const errorBody = await response.text();
-            console.error(`[V8] NHL API responded with status: ${response.status}. Body: ${errorBody}`);
+            console.error(`[V9] NHL API responded with status: ${response.status}. Body: ${errorBody}`);
             throw new Error(`Failed to fetch player stats. Status: ${response.status}`);
         }
         
         const data = await response.json();
         
-        // 3. Robust Data Consolidation
-        // If gamesPlayed is missing, we can't build a list, so return empty.
-        if (!data || !Array.isArray(data.gamesPlayed)) {
-            console.warn("[V8] API response is missing the essential 'gamesPlayed' data. Returning empty.");
+        // 3. Comprehensive Data Consolidation
+        if (!data) {
+            console.warn("[V9] API response was empty or invalid. Returning empty.");
             return res.status(200).json([]);
         }
 
-        // Helper function to create efficient { playerId: value } lookup maps for each stat.
-        const createStatMap = (categoryData) => {
-            const statMap = new Map();
+        // The master map to hold all consolidated player data.
+        const playerStats = new Map();
+
+        // Helper function to process a stat category. It adds new players to the master map
+        // if they don't exist yet, and then updates their specific stat.
+        const processCategory = (categoryData, statName) => {
             if (categoryData && Array.isArray(categoryData)) {
                 for (const player of categoryData) {
-                    if (player && player.id) {
-                        statMap.set(player.id, player.value);
+                    // Skip any invalid player entries
+                    if (!player || !player.id) continue;
+
+                    const playerId = player.id;
+
+                    // If we haven't seen this player before, create a new entry for them.
+                    if (!playerStats.has(playerId)) {
+                        let headshotUrl = 'https://placehold.co/100x100/111111/FFFFFF?text=?';
+                        if (player.teamAbbrevs && playerId) {
+                            headshotUrl = `https://assets.nhle.com/mugs/nhl/latest/${player.teamAbbrevs}/${playerId}.png`;
+                        }
+                        playerStats.set(playerId, {
+                            id: playerId,
+                            name: `${player.firstName.default} ${player.lastName.default}`,
+                            headshot: headshotUrl,
+                            team: player.teamAbbrevs || 'N/A',
+                            position: player.positionCode || 'N/A',
+                            // Initialize all stats to 0
+                            gamesPlayed: 0, goals: 0, assists: 0, points: 0, plusMinus: 0,
+                            penaltyMinutes: 0, powerPlayGoals: 0, hits: 0, blockedShots: 0,
+                        });
                     }
+                    
+                    // Get the player record and update the specific stat.
+                    const existingPlayer = playerStats.get(playerId);
+                    existingPlayer[statName] = player.value;
                 }
             }
-            return statMap;
         };
 
-        // Create a lookup map for every stat category.
-        const goalsMap = createStatMap(data.goals);
-        const assistsMap = createStatMap(data.assists);
-        const pointsMap = createStatMap(data.points);
-        const plusMinusMap = createStatMap(data.plusMinus);
-        const penaltyMinutesMap = createStatMap(data.penaltyMinutes);
-        const powerPlayGoalsMap = createStatMap(data.powerPlayGoals);
-        const hitsMap = createStatMap(data.hits);
-        const blockedShotsMap = createStatMap(data.blockedShots);
-
-        // Build the final list using gamesPlayed as the source of truth for our roster.
-        const consolidatedStats = [];
-        for (const player of data.gamesPlayed) {
-            if (!player || !player.id) continue;
-
-            const playerId = player.id;
-            let headshotUrl = 'https://placehold.co/100x100/111111/FFFFFF?text=?';
-            if (player.teamAbbrevs && playerId) {
-                headshotUrl = `https://assets.nhle.com/mugs/nhl/latest/${player.teamAbbrevs}/${playerId}.png`;
-            }
-
-            consolidatedStats.push({
-                id: playerId,
-                name: `${player.firstName.default} ${player.lastName.default}`,
-                headshot: headshotUrl,
-                team: player.teamAbbrevs || 'N/A',
-                position: player.positionCode || 'N/A',
-                gamesPlayed: player.value ?? 0,
-                // Look up each stat in its respective map. Default to 0 if not found.
-                goals: goalsMap.get(playerId) ?? 0,
-                assists: assistsMap.get(playerId) ?? 0,
-                points: pointsMap.get(playerId) ?? 0,
-                plusMinus: plusMinusMap.get(playerId) ?? 0,
-                penaltyMinutes: String(penaltyMinutesMap.get(playerId) ?? 0),
-                powerPlayGoals: powerPlayGoalsMap.get(playerId) ?? 0,
-                hits: hitsMap.get(playerId) ?? 0,
-                blockedShots: blockedShotsMap.get(playerId) ?? 0,
-            });
+        // Process every single stat category to build a complete roster of all leaders.
+        // This ensures players who are leaders in hits but not points are still included.
+        processCategory(data.gamesPlayed, 'gamesPlayed');
+        processCategory(data.goals, 'goals');
+        processCategory(data.assists, 'assists');
+        processCategory(data.points, 'points');
+        processCategory(data.plusMinus, 'plusMinus');
+        processCategory(data.penaltyMinutes, 'penaltyMinutes');
+        processCategory(data.powerPlayGoals, 'powerPlayGoals');
+        processCategory(data.hits, 'hits');
+        processCategory(data.blockedShots, 'blockedShots');
+        
+        // Final conversion of penaltyMinutes to string for consistency
+        for (const player of playerStats.values()) {
+            player.penaltyMinutes = String(player.penaltyMinutes);
         }
 
-        console.log(`[V8] Processing complete. Consolidated stats for ${consolidatedStats.length} players.`);
+        const consolidatedStats = Array.from(playerStats.values());
+
+        console.log(`[V9] Processing complete. Consolidated stats for ${consolidatedStats.length} players.`);
         res.status(200).json(consolidatedStats);
 
     } catch (error) {
-        console.error("[V8] Critical error in nhl-player-stats function:", error.message);
+        console.error("[V9] Critical error in nhl-player-stats function:", error.message);
         res.status(500).json({ error: "Could not fetch player statistics.", details: error.message });
     }
 }
