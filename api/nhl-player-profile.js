@@ -13,7 +13,12 @@ export default async function handler(req, res) {
     try {
         console.log(`[Player Profile] Fetching data for player ID ${id} from: ${url}`);
         
-        const response = await fetch(url);
+        // **FIX**: Added a 'User-Agent' header to prevent the request from being blocked by the NHL API.
+        const response = await fetch(url, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'
+            }
+        });
 
         if (!response.ok) {
             console.error(`[Player Profile] API failed for ID ${id} with status: ${response.status}`);
@@ -22,9 +27,6 @@ export default async function handler(req, res) {
         
         const data = await response.json();
 
-        // The API returns a lot of data, we can simplify it for the frontend.
-        // We will return the full object for now to allow for flexibility on the page.
-        
         console.log(`[Player Profile] Successfully fetched data for ${data.firstName.default} ${data.lastName.default}`);
         res.status(200).json(data);
 
@@ -33,3 +35,4 @@ export default async function handler(req, res) {
         res.status(500).json({ error: "Could not fetch player profile.", details: error.message });
     }
 }
+
