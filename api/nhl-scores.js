@@ -1,8 +1,7 @@
 // api/nhl-scores.js
 
-// This endpoint reverts to the stable ESPN API to fetch scoreboard data.
+// This endpoint uses the stable ESPN API and includes robust error handling.
 export default async function handler(req, res) {
-    // Helper to get date strings in YYYYMMDD format for the ESPN API
     const getFormattedDate = (offset = 0) => {
         const date = new Date();
         date.setDate(date.getDate() + offset);
@@ -18,7 +17,9 @@ export default async function handler(req, res) {
 
     const dates = [yesterday, today, tomorrow];
     const fetchPromises = dates.map(date => 
-        fetch(`https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/scoreboard?dates=${date}`)
+        fetch(`https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/scoreboard?dates=${date}`, {
+             headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36' }
+        })
     );
 
     try {
@@ -31,58 +32,47 @@ export default async function handler(req, res) {
                 return { date: dates[index].replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3'), events: [] };
             }
             const data = await response.json();
-            return { date: data.day.date, events: data.events };
+            return { date: data.day.date, events: data.events || [] };
         }));
 
         const processedSchedule = allEvents.map(dayData => {
             const games = dayData.events.map(event => {
-                const competition = event.competitions[0];
-                const status = competition.status;
-                const competitors = competition.competitors;
-                
-                const homeTeamData = competitors.find(c => c.homeAway === 'home');
-                const awayTeamData = competitors.find(c => c.homeAway === 'away');
+                try {
+                    const competition = event.competitions[0];
+                    const status = competition.status;
+                    const competitors = competition.competitors;
+                    
+                    const homeTeamData = competitors.find(c => c.homeAway === 'home');
+                    const awayTeamData = competitors.find(c => c.homeAway === 'away');
 
-                let period = null;
-                let timeRemaining = null;
-                if (status.type.state === 'in') { // Game is live
-                    period = status.period;
-                    timeRemaining = status.displayClock;
-                } else if (status.type.completed) {
-                    period = 'FINAL';
+                    let period = null;
+                    let timeRemaining = null;
+                    if (status.type.state === 'in') {
+                        period = status.period;
+                        timeRemaining = status.displayClock;
+                    } else if (status.type.completed) {
+                        period = 'FINAL';
+                    }
+                    
+                    return {
+                        id: event.id,
+                        homeTeam: {
+                            abbrev: homeTeamData.team.abbreviation,
+                            score: homeTeamData.score,
+                        },
+                        awayTeam: {
+                            abbrev: awayTeamData.team.abbreviation,
+                            score: awayTeamData.score,
+                        },
+                        period: period,
+                        timeRemaining: timeRemaining,
+                        startTime: status.type.shortDetail,
+                    };
+                } catch (e) {
+                    console.error("Error processing a single game, skipping:", event, e);
+                    return null; // Skip this game if it has malformed data
                 }
-
-                const broadcasts = competition.broadcasts.map(b => b.media.shortName).slice(0, 2);
-                
-                const situation = competition.situation;
-                let isPowerPlay = false;
-                let powerPlayTeam = null;
-                if (situation && situation.situation && situation.situation.text.includes("Power Play")) {
-                    isPowerPlay = true;
-                    powerPlayTeam = situation.situation.text.includes(homeTeamData.team.abbreviation) ? homeTeamData.team.abbreviation : awayTeamData.team.abbreviation;
-                }
-                
-                return {
-                    id: event.id,
-                    homeTeam: {
-                        abbrev: homeTeamData.team.abbreviation,
-                        logo: homeTeamData.team.logo,
-                        score: homeTeamData.score,
-                    },
-                    awayTeam: {
-                        abbrev: awayTeamData.team.abbreviation,
-                        logo: awayTeamData.team.logo,
-                        score: awayTeamData.score,
-                    },
-                    gameState: status.type.name,
-                    period: period,
-                    timeRemaining: timeRemaining,
-                    startTime: status.type.shortDetail,
-                    isPowerPlay: isPowerPlay,
-                    powerPlayTeam: powerPlayTeam,
-                    broadcasts: broadcasts,
-                };
-            });
+            }).filter(Boolean); // Filter out any null (skipped) games
 
             return {
                 date: new Date(dayData.date),

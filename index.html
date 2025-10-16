@@ -155,12 +155,11 @@
     </main>
     
     <!-- All modals are included in the full script but hidden here for brevity -->
-    <!-- ... -->
-    <div id="admin-login-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop"><!--...--></div>
-    <div id="edit-matchup-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop"><!--...--></div>
-    <div id="team-manager-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop"><!--...--></div>
-    <div id="edit-team-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop"><!--...--></div>
-    <div id="confirmation-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop"><!--...--></div>
+    <div id="admin-login-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop"><div class="card no-hover p-8 rounded-lg w-full max-w-sm"><h2 class="text-2xl font-bold text-white mb-4">Admin Login</h2><p id="login-error" class="text-red-500 text-sm mb-4 hidden">Invalid password.</p><form id="login-form"><input id="password-input" type="password" class="form-input mb-4" placeholder="Enter password..."><div class="flex justify-end space-x-4"><button type="button" onclick="toggleLoginModal(false)" class="btn-secondary">Cancel</button><button type="submit" class="btn-primary">Login</button></div></form></div></div>
+    <div id="edit-matchup-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop"><div class="card no-hover p-8 rounded-lg w-full max-w-lg"><h2 id="matchup-modal-title" class="text-2xl font-bold text-white mb-6">Edit Matchup</h2><form id="edit-matchup-form"><input type="hidden" id="edit-matchup-id"><div class="grid grid-cols-2 gap-6"><div><label class="block text-sm font-medium text-gray-400 mb-1">Team 1</label><select id="edit-team1-id" class="form-input"></select><label class="block text-sm font-medium text-gray-400 mt-4 mb-1">Team 1 Score</label><input id="edit-team1-score" type="number" step="0.1" class="form-input" placeholder="Score"></div><div><label class="block text-sm font-medium text-gray-400 mb-1">Team 2</label><select id="edit-team2-id" class="form-input"></select><label class="block text-sm font-medium text-gray-400 mt-4 mb-1">Team 2 Score</label><input id="edit-team2-score" type="number" step="0.1" class="form-input" placeholder="Score"></div></div><div class="flex justify-end space-x-4 mt-8"><button type="button" onclick="toggleEditMatchupModal(false)" class="btn-secondary">Cancel</button><button type="submit" class="btn-primary">Save Changes</button></div></form></div></div>
+    <div id="team-manager-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop"><div class="card no-hover p-8 rounded-lg w-full max-w-2xl"><div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-bold text-white">Manage Teams</h2><button onclick="openAddTeamModal()" class="admin-btn text-sm">+ Add Team</button></div><div id="team-list-container" class="max-h-96 overflow-y-auto pr-2"></div><div class="flex justify-end mt-8"><button type="button" onclick="toggleTeamManagerModal(false)" class="btn-secondary">Close</button></div></div></div>
+    <div id="edit-team-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop"><div class="card no-hover p-8 rounded-lg w-full max-w-md"><h2 id="team-modal-title" class="text-2xl font-bold text-white mb-6">Edit Team</h2><form id="edit-team-form"><input type="hidden" id="edit-team-id"><div class="space-y-4"><div><label class="block text-sm font-medium text-gray-400 mb-1">Team Name</label><input id="edit-team-name" type="text" class="form-input" required></div><div><label class="block text-sm font-medium text-gray-400 mb-1">Logo URL</label><input id="edit-team-logo" type="text" class="form-input"></div><div class="grid grid-cols-3 gap-4"><div><label class="block text-sm font-medium text-gray-400 mb-1">Wins</label><input id="edit-team-wins" type="number" class="form-input" value="0"></div><div><label class="block text-sm font-medium text-gray-400 mb-1">Losses</label><input id="edit-team-losses" type="number" class="form-input" value="0"></div><div><label class="block text-sm font-medium text-gray-400 mb-1">Ties</label><input id="edit-team-ties" type="number" class="form-input" value="0"></div></div></div><div class="flex justify-end space-x-4 mt-8"><button type="button" onclick="toggleEditTeamModal(false)" class="btn-secondary">Cancel</button><button type="submit" class="btn-primary">Save Changes</button></div></form></div></div>
+    <div id="confirmation-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop"><div class="card no-hover p-8 rounded-lg w-full max-w-sm"><h2 class="text-xl font-bold text-white mb-4">Are you sure?</h2><p id="confirmation-message" class="text-gray-300 mb-6">This action cannot be undone.</p><div class="flex justify-end space-x-4"><button type="button" onclick="closeConfirmationModal()" class="btn-secondary">Cancel</button><button type="button" id="confirm-action-btn" class="btn-danger">Delete</button></div></div></div>
 
 <script>
     // --- DATA STORE ---
@@ -271,110 +270,7 @@
     });
 
     // --- FULL SCRIPT WITH ALL FUNCTIONS ---
-    function loadData() {
-        const savedData = localStorage.getItem('foxAndHoundsData');
-        leagueData = savedData ? JSON.parse(savedData) : JSON.parse(JSON.stringify(defaultData));
-    }
-    function saveData() { localStorage.setItem('foxAndHoundsData', JSON.stringify(leagueData)); }
-    function loadContent() {
-        const savedContent = localStorage.getItem('foxAndHoundsContent');
-        pageContent = savedContent ? JSON.parse(savedContent) : {};
-        document.querySelectorAll('.editable-content').forEach(el => {
-            if (pageContent[el.id]) el.innerHTML = pageContent[el.id];
-        });
-    }
-    function getTeamById(id) { return leagueData.teams.find(t => t.id === id); }
-    function renderAll() {
-        renderMatchups();
-        renderStandings();
-        toggleAdminUI();
-    }
-    function renderMatchups() {
-        const container = document.getElementById('fantasy-ticker-container');
-        if (!container) return;
-        container.innerHTML = '';
-        if (!leagueData.matchups || leagueData.matchups.length === 0) {
-            container.innerHTML = `<div class="scoreboard-card items-center justify-center text-gray-500">No Matchups Set</div>`;
-            return;
-        }
-        let tickerHTML = '';
-        leagueData.matchups.forEach(matchup => {
-            const team1 = getTeamById(matchup.team1_id);
-            const team2 = getTeamById(matchup.team2_id);
-            if (!team1 || !team2) return;
-            tickerHTML += `
-                <div class="scoreboard-card">
-                    <div class="flex items-center justify-between w-full">
-                        <div class="flex items-center truncate w-2/5">
-                            <img src="${team1.logo}" class="team-logo-sm mr-2 flex-shrink-0" onerror="this.src='https://placehold.co/24x24/111/fff?text=?';">
-                            <span class="font-semibold truncate">${team1.name}</span>
-                        </div>
-                        <div class="font-bold text-lg text-yellow-400">
-                            <span>${matchup.team1_score || 0}</span>
-                            <span class="text-gray-500 mx-2">-</span>
-                            <span>${matchup.team2_score || 0}</span>
-                        </div>
-                        <div class="flex items-center truncate w-2/5 justify-end">
-                            <span class="font-semibold truncate text-right">${team2.name}</span>
-                            <img src="${team2.logo}" class="team-logo-sm ml-2 flex-shrink-0" onerror="this.src='https://placehold.co/24x24/111/fff?text=?';">
-                        </div>
-                    </div>
-                </div>`;
-        });
-        container.innerHTML = tickerHTML + tickerHTML;
-    }
-    function renderStandings() {
-        const container = document.getElementById('standings-container');
-        if (!container) return;
-        container.innerHTML = '';
-        const sortedTeams = [...leagueData.teams].sort((a, b) => b.wins - a.wins || a.losses - b.losses);
-        sortedTeams.forEach((team, index) => {
-            container.innerHTML += `
-                <li class="py-3 flex justify-between items-center">
-                    <div class="flex items-center">
-                        <span class="rank-number w-6 text-center">${index + 1}</span>
-                        <img class="team-logo w-8 h-8 ml-3" src="${team.logo}" alt="${team.name} logo">
-                        <p class="ml-3 font-medium text-white">${team.name}</p>
-                    </div>
-                    <p class="text-gray-400 font-mono text-sm">${team.wins}-${team.losses}-${team.ties}</p>
-                </li>`;
-        });
-    }
-    function checkAdminState() { if (sessionStorage.getItem('isAdmin') === 'true') isAdmin = true; }
-    function toggleAdminUI() {
-        const body = document.querySelector('body');
-        const loginBtn = document.getElementById('admin-login-btn');
-        const logoutBtn = document.getElementById('admin-logout-btn');
-        if (isAdmin) {
-            body.classList.add('admin-mode');
-            loginBtn.classList.add('hidden');
-            logoutBtn.classList.remove('hidden');
-        } else {
-            body.classList.remove('admin-mode');
-            loginBtn.classList.remove('hidden');
-            logoutBtn.classList.add('hidden');
-        }
-    }
-    function toggleContentEditor() {
-        isEditingContent = !isEditingContent;
-        const btn = document.getElementById('content-editor-btn');
-        btn.textContent = isEditingContent ? 'Save & Exit' : 'Edit Page Content';
-        btn.classList.toggle('bg-yellow-400');
-        btn.classList.toggle('text-black');
-        if (isEditingContent) {
-            $('.editable-content').summernote({
-                focus: true,
-                toolbar: [['style', ['bold', 'italic', 'underline']],['para', ['ul', 'ol']],['insert', ['link']],['view', ['undo', 'redo']]]
-            });
-        } else {
-            document.querySelectorAll('.editable-content').forEach(el => {
-                pageContent[el.id] = $(el).summernote('code');
-                $(el).summernote('destroy');
-            });
-            localStorage.setItem('foxAndHoundsContent', JSON.stringify(pageContent));
-        }
-    }
-    // Functions for modals and data management are assumed to be here
+    function loadData(){const e=localStorage.getItem("foxAndHoundsData");leagueData=e?JSON.parse(e):JSON.parse(JSON.stringify(defaultData))}function saveData(){localStorage.setItem("foxAndHoundsData",JSON.stringify(leagueData))}function loadContent(){const e=localStorage.getItem("foxAndHoundsContent");pageContent=e?JSON.parse(e):{},document.querySelectorAll(".editable-content").forEach(e=>{pageContent[e.id]&&(e.innerHTML=pageContent[e.id])})}function getTeamById(e){return leagueData.teams.find(t=>t.id===e)}function renderAll(){renderMatchups(),renderStandings(),toggleAdminUI()}function renderMatchups(){const e=document.getElementById("fantasy-ticker-container");if(e){if(e.innerHTML=" ",!leagueData.matchups||0===leagueData.matchups.length)return void(e.innerHTML='<div class="scoreboard-card items-center justify-center text-gray-500">No Matchups Set</div>');let t="";leagueData.matchups.forEach(e=>{const n=getTeamById(e.team1_id),o=getTeamById(e.team2_id);n&&o&&(t+=`\n                <div class="scoreboard-card">\n                    <div class="flex items-center justify-between w-full">\n                        <div class="flex items-center truncate w-2/5">\n                            <img src="${n.logo}" class="team-logo-sm mr-2 flex-shrink-0" onerror="this.src='https://placehold.co/24x24/111/fff?text=?';">\n                            <span class="font-semibold truncate">${n.name}</span>\n                        </div>\n                        <div class="font-bold text-lg text-yellow-400">\n                            <span>${e.team1_score||0}</span>\n                            <span class="text-gray-500 mx-2">-</span>\n                            <span>${e.team2_score||0}</span>\n                        </div>\n                        <div class="flex items-center truncate w-2/5 justify-end">\n                            <span class="font-semibold truncate text-right">${o.name}</span>\n                            <img src="${o.logo}" class="team-logo-sm ml-2 flex-shrink-0" onerror="this.src='https://placehold.co/24x24/111/fff?text=?';">\n                        </div>\n                    </div>\n                </div>`)}),e.innerHTML=t+t}}function renderStandings(){const e=document.getElementById("standings-container");if(e){e.innerHTML="";[...leagueData.teams].sort((e,t)=>t.wins-e.wins||e.losses-t.losses).forEach((t,n)=>{e.innerHTML+=`\n                <li class="py-3 flex justify-between items-center">\n                    <div class="flex items-center">\n                        <span class="rank-number w-6 text-center">${n+1}</span>\n                        <img class="team-logo w-8 h-8 ml-3" src="${t.logo}" alt="${t.name} logo">\n                        <p class="ml-3 font-medium text-white">${t.name}</p>\n                    </div>\n                    <p class="text-gray-400 font-mono text-sm">${t.wins}-${t.losses}-${t.ties}</p>\n                </li>`})}}function checkAdminState(){"true"===sessionStorage.getItem("isAdmin")&&(isAdmin=!0)}function toggleAdminUI(){const e=document.querySelector("body"),t=document.getElementById("admin-login-btn"),n=document.getElementById("admin-logout-btn");isAdmin?(e.classList.add("admin-mode"),t.classList.add("hidden"),n.classList.remove("hidden")):(e.classList.remove("admin-mode"),t.classList.remove("hidden"),n.classList.add("hidden"))}function toggleContentEditor(){isEditingContent=!isEditingContent;const e=document.getElementById("content-editor-btn");e.textContent=isEditingContent?"Save & Exit":"Edit Page Content",e.classList.toggle("bg-yellow-400"),e.classList.toggle("text-black"),isEditingContent?$(".editable-content").summernote({focus:!0,toolbar:[["style",["bold","italic","underline"]],["para",["ul","ol"]],["insert",["link"]],["view",["undo","redo"]]]}):(document.querySelectorAll(".editable-content").forEach(e=>{pageContent[e.id]=$(e).summernote("code"),$(e).summernote("destroy")}),localStorage.setItem("foxAndHoundsContent",JSON.stringify(pageContent)))}
 </script>
 </body>
 </html>
