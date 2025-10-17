@@ -11,35 +11,13 @@
         body { font-family: 'Inter', sans-serif; background-color: #000000; }
         .card { background-color: #111111; border: 1px solid #333333; }
         .header-glow { border-bottom: 1px solid #333; }
-        .team-logo { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 2px solid #333333; }
         .rank-number { font-weight: 600; color: #DC143C; }
         .admin-btn { padding: 8px 16px; border-radius: 6px; font-weight: 600; transition: all 0.2s; background-color: transparent; border: 1px solid #FFD700; color: #FFD700; display: inline-block; }
         .admin-btn:hover { background-color: rgba(255, 215, 0, 0.1); }
-        .ticker-wrapper { overflow: hidden; }
-        .nhl-ticker { background-color: #0a0a0a; border-bottom: 1px solid #333; }
-        .fantasy-ticker { background-color: #111; border-bottom: 1px solid #333; }
-        .ticker-container { display: flex; align-items: stretch; white-space: nowrap; }
-        .nhl-ticker .ticker-container { animation: scroll 120s linear infinite; }
-        .fantasy-ticker .ticker-container { animation: scroll-fantasy 80s linear infinite; }
-        .ticker-container:hover { animation-play-state: paused; }
-        @keyframes scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
-        @keyframes scroll-fantasy { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
-        .scoreboard-card { display: inline-flex; flex-direction: column; padding: 12px 16px; border-right: 1px solid #333; width: 240px; font-size: 12px; }
-        .scoreboard-team-row { display: flex; justify-content: space-between; align-items: center; }
-        .team-logo-sm { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; }
-        .fantasy-ticker .scoreboard-card { width: auto; flex-shrink: 0; padding: 12px 24px; height: 72px; flex-direction: row; align-items: center; justify-content: center; }
-        .news-headline { border-bottom: 1px solid #333; padding: 0.75rem 0; }
-        .news-headline:last-child { border-bottom: none; }
-        .news-headline a { color: #FFD700; font-weight: 600; text-decoration: none; transition: color 0.2s; }
-        .news-headline a:hover { color: #fff; }
-        .btn-secondary { background-color: #333; color: white; border: 1px solid #333; padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; }
-        .btn-secondary:hover:not(:disabled) { background-color: #444; }
-        .btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
+        .team-logo-sm { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
     </style>
 </head>
 <body class="text-gray-300">
-
-    <div class="ticker-wrapper nhl-ticker"><div id="ticker-container" class="ticker-container"></div></div>
 
     <header class="bg-black/70 backdrop-blur-sm sticky top-0 z-40 header-glow">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -56,52 +34,29 @@
         </div>
     </header>
 
-    <div id="matchups-header-content" class="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-10 text-center"><h2 class="text-xl sm:text-2xl font-semibold text-white">Weekly Matchups</h2></div>
-    <div class="ticker-wrapper fantasy-ticker"><div id="fantasy-ticker-container" class="ticker-container"></div></div>
-    
     <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div class="space-y-6">
-                 <div class="text-center" id="standings-header-content"><h2 class="text-xl sm:text-2xl font-semibold text-white">League Standings</h2></div>
-                <div class="card rounded-lg p-4"><ul id="standings-container" class="divide-y divide-gray-800"></ul></div>
+            <!-- Standings Column -->
+            <div>
+                <h2 class="text-2xl font-semibold text-white text-center mb-4">League Rankings</h2>
+                <div class="card rounded-lg p-4">
+                    <ul id="standings-container" class="divide-y divide-gray-800">
+                        <!-- Standings will be injected here -->
+                    </ul>
+                </div>
             </div>
-            <div class="space-y-6">
-                 <div class="text-center"><h2 class="text-xl sm:text-2xl font-semibold text-white">Recent Hockey News</h2></div>
-                <div id="news-container" class="card rounded-lg p-6 min-h-[300px]"></div>
-                <div id="news-pagination" class="flex justify-between items-center mt-4"></div>
+            <!-- Matchups Column -->
+            <div>
+                <h2 class="text-2xl font-semibold text-white text-center mb-4">Weekly Matchups</h2>
+                <div id="matchups-container" class="space-y-4">
+                    <!-- Matchup cards will be injected here -->
+                </div>
             </div>
         </div>
     </main>
     
 <script>
-    let leagueData = {}, pageContent = {}, allNews = [], currentNewsPage = 1, newsPerPage = 5;
-
     document.addEventListener("DOMContentLoaded", () => {
-        const tickerContainer = document.getElementById('ticker-container');
-        async function fetchScoreboard() { 
-            try { 
-                const response = await fetch('/api/nhl-scores'); 
-                if (!response.ok) throw new Error('Failed to fetch scoreboard'); 
-                const data = await response.json(); 
-                renderTicker(data.scores); 
-            } catch (error) { 
-                console.error("Error fetching scoreboard:", error); 
-                if (tickerContainer) tickerContainer.innerHTML = '<div class="p-4 text-red-500 text-center w-full">Could not load live scores.</div>'; 
-            } 
-        }
-        function renderTicker(games) { 
-            if (!tickerContainer) return; 
-            let tickerHTML = ''; 
-            if (!games || games.length === 0) { 
-                tickerHTML = `<div class="scoreboard-card items-center justify-center text-gray-500 w-full">No Games Scheduled Today</div>`; 
-            } else { 
-                games.forEach(game => { 
-                    tickerHTML += `<div class="scoreboard-card justify-center"><div class="scoreboard-team-row mb-1"><span class="font-semibold">${game.awayTeam}</span><span class="font-bold text-lg">${game.awayScore}</span></div><div class="scoreboard-team-row"><span class="font-semibold">${game.homeTeam}</span><span class="font-bold text-lg">${game.homeScore}</span></div><div class="text-xs text-gray-400 mt-2 border-t border-gray-700 pt-1 text-center">${game.status}</div></div>`; 
-                }); 
-            } 
-            tickerContainer.innerHTML = tickerHTML + tickerHTML; 
-        }
-        
         async function fetchYahooData() {
             try {
                 const response = await fetch('/api/get-yahoo-data', { credentials: 'include' });
@@ -114,8 +69,8 @@
             } catch (error) {
                 console.error("Error fetching Yahoo data:", error);
                 const errorMessage = `Could not load live fantasy data. ${error.message.includes('Not authenticated') ? 'Connect account in Admin Panel.' : 'Please try again later.'}`;
-                document.getElementById('fantasy-ticker-container').innerHTML = `<div class="p-4 text-red-500 text-center w-full">${errorMessage}</div>`;
-                document.getElementById('standings-container').innerHTML = `<div class="p-4 text-red-500 text-center w-full">${errorMessage}</div>`;
+                document.getElementById('matchups-container').innerHTML = `<p class="text-red-500 text-center">${errorMessage}</p>`;
+                document.getElementById('standings-container').innerHTML = `<p class="text-red-500 text-center">${errorMessage}</p>`;
             }
         }
         
@@ -125,19 +80,37 @@
         }
 
         function renderMatchups(matchups){
-            const container = document.getElementById("fantasy-ticker-container");
+            const container = document.getElementById("matchups-container");
             if(!container) return;
+            container.innerHTML = '';
             if (matchups.length === 0) {
-                container.innerHTML = `<div class="scoreboard-card items-center justify-center text-gray-500">No matchups available.</div>`;
+                container.innerHTML = `<div class="card p-4 text-center text-gray-500">No matchups available.</div>`;
                 return;
             }
-            let tickerHTML = "";
+
             matchups.forEach(matchup => {
                 const team1 = matchup.team1;
                 const team2 = matchup.team2;
-                tickerHTML += `<div class="scoreboard-card"><div class="flex items-center justify-between w-full text-sm"><div class="flex items-center truncate pr-4"><img src="${team1.logo}" class="team-logo-sm mr-2 flex-shrink-0" onerror="this.src='https://placehold.co/24x24/111/fff?text=?';"><span class="font-semibold truncate">${team1.name}</span></div><div class="font-bold text-lg text-yellow-400 whitespace-nowrap"><span>${team1.score}</span><span class="text-gray-500 mx-2">-</span><span>${team2.score}</span></div><div class="flex items-center truncate pl-4 justify-end"><span class="font-semibold truncate text-right">${team2.name}</span><img src="${team2.logo}" class="team-logo-sm ml-2 flex-shrink-0" onerror="this.src='https://placehold.co/24x24/111/fff?text=?';"></div></div></div>`;
+                container.innerHTML += `
+                    <div class="card p-4 rounded-lg">
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center text-left w-2/5 truncate">
+                                <img src="${team1.logo}" class="team-logo-sm mr-3 flex-shrink-0" onerror="this.src='https://placehold.co/32x32/111/fff?text=?';">
+                                <span class="font-semibold truncate">${team1.name}</span>
+                            </div>
+                            <div class="font-bold text-lg text-yellow-400 whitespace-nowrap">
+                                <span>${team1.score}</span>
+                                <span class="text-gray-500 mx-2">-</span>
+                                <span>${team2.score}</span>
+                            </div>
+                            <div class="flex items-center text-right w-2/5 truncate justify-end">
+                                <span class="font-semibold truncate">${team2.name}</span>
+                                <img src="${team2.logo}" class="team-logo-sm ml-3 flex-shrink-0" onerror="this.src='https://placehold.co/32x32/111/fff?text=?';">
+                            </div>
+                        </div>
+                    </div>
+                `;
             });
-            container.innerHTML = tickerHTML + tickerHTML;
         }
 
         function renderStandings(standings){
@@ -145,22 +118,24 @@
             if(!container) return;
             container.innerHTML = "";
             if (standings.length === 0) {
-                container.innerHTML = `<p class="text-center text-gray-500">Standings could not be loaded.</p>`;
+                container.innerHTML = `<p class="text-center text-gray-500 p-4">Standings could not be loaded.</p>`;
                 return;
             }
             standings.forEach(team => {
-                container.innerHTML += `<li class="py-3 flex justify-between items-center"><div class="flex items-center"><span class="rank-number w-6 text-center">${team.rank}</span><img class="team-logo-sm w-8 h-8 ml-3" src="${team.logo}" alt="${team.name} logo"><p class="ml-3 font-medium text-white">${team.name}</p></div><p class="text-gray-400 font-mono text-sm">${team.wins}-${team.losses}-${team.ties}</p></li>`;
+                container.innerHTML += `
+                    <li class="py-3 flex justify-between items-center">
+                        <div class="flex items-center">
+                            <span class="rank-number w-6 text-center">${team.rank}</span>
+                            <img class="team-logo-sm w-8 h-8 ml-3" src="${team.logo}" alt="${team.name} logo">
+                            <p class="ml-3 font-medium text-white">${team.name}</p>
+                        </div>
+                        <p class="text-gray-400 font-mono text-sm">${team.wins}-${team.losses}-${team.ties}</p>
+                    </li>`;
             });
         }
     
-        // Initial Load
-        fetchScoreboard(); 
         fetchYahooData();
-        fetchHockeyNews();
     });
-
-    async function fetchHockeyNews() { const container = document.getElementById('news-container'); container.innerHTML = `<p class="text-gray-400">Fetching news...</p>`; try { const response = await fetch('/api/hockey-news'); const data = await response.json(); if (data.headlines && data.headlines.length > 0) { allNews = data.headlines; currentNewsPage = 1; renderNews(); } else { container.innerHTML = `<p class="text-gray-500">No recent news found.</p>`; } } catch (error) { console.error("Error fetching hockey news:", error); container.innerHTML = `<p class="text-red-500">Could not fetch news.</p>`; } }
-    function renderNews() { const container = document.getElementById('news-container'); const paginationContainer = document.getElementById('news-pagination'); container.innerHTML = ''; paginationContainer.innerHTML = ''; const start = (currentNewsPage - 1) * newsPerPage; const end = start + newsPerPage; const paginatedNews = allNews.slice(start, end); paginatedNews.forEach(item => { container.innerHTML += `<div class="news-headline"><a href="${item.link}" target="_blank" rel="noopener noreferrer">${item.title}</a></div>`; }); const totalPages = Math.ceil(allNews.length / newsPerPage); if (totalPages > 1) { paginationContainer.innerHTML = `<button id="prev-news-btn" class="btn-secondary text-xs">Prev</button><span class="text-xs text-gray-400">Page ${currentNewsPage} of ${totalPages}</span><button id="next-news-btn" class="btn-secondary text-xs">Next</button>`; const prevBtn = document.getElementById('prev-news-btn'); const nextBtn = document.getElementById('next-news-btn'); prevBtn.disabled = currentNewsPage === 1; nextBtn.disabled = currentNewsPage === totalPages; prevBtn.addEventListener('click', () => { currentNewsPage--; renderNews(); }); nextBtn.addEventListener('click', () => { currentNewsPage++; renderNews(); }); } }
 </script>
 </body>
 </html>
