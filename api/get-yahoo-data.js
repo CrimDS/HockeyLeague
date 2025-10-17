@@ -41,7 +41,7 @@ const cleanYahooData = (data) => {
 export default async function handler(req, res) {
     const refreshToken = req.cookies.yahoo_refresh_token;
     if (!refreshToken) {
-        return res.status(401).json({ error: "Not authenticated with Yahoo." });
+        return res.status(401).json({ error: "Not authenticated with Yahoo. Please connect your account in the Admin Panel." });
     }
 
     try {
@@ -68,20 +68,18 @@ export default async function handler(req, res) {
         const rawStandings = cleanYahooData(standingsData.fantasy_content.league[1].standings[0].teams);
         const standings = rawStandings.map(item => {
             const team = item.team[0];
-            const teamPoints = item.team[1].team_points;
-            const teamStats = item.team[2].team_stats.stats;
-            const outcomeTotals = teamStats.find(s => s.stat.stat_id === '9004003').stat.value.split('-');
+            const outcomeTotals = item.team[3].outcome_totals;
             
             return {
                 team_id: team[0].team_id,
                 name: team[2].name,
                 logo: team[5].team_logos[0].team_logo.url,
-                wins: outcomeTotals[0] || '0',
-                losses: outcomeTotals[1] || '0',
-                ties: outcomeTotals[2] || '0',
+                wins: outcomeTotals.wins,
+                losses: outcomeTotals.losses,
+                ties: outcomeTotals.ties,
                 rank: item.team[15].rank
             };
-        }).sort((a,b) => a.rank - b.rank);
+        }).sort((a,b) => parseInt(a.rank) - parseInt(b.rank));
 
 
         // --- Process Matchups ---
@@ -111,3 +109,4 @@ export default async function handler(req, res) {
         res.status(500).json({ error: "Failed to fetch data from Yahoo.", details: error.message });
     }
 }
+

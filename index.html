@@ -79,20 +79,21 @@
         async function fetchScoreboard() { try { const response = await fetch('/api/nhl-scores'); if (!response.ok) throw new Error('Failed to fetch scoreboard'); const data = await response.json(); renderTicker(data.scores); } catch (error) { console.error("Error fetching scoreboard:", error); if (tickerContainer) tickerContainer.innerHTML = '<div class="p-4 text-red-500 text-center w-full">Could not load live scores.</div>'; } }
         function renderTicker(games) { if (!tickerContainer) return; let tickerHTML = ''; if (!games || games.length === 0) { tickerHTML = `<div class="scoreboard-card items-center justify-center text-gray-500 w-full">No Games Scheduled Today</div>`; } else { games.forEach(game => { tickerHTML += `<div class="scoreboard-card justify-center"><div class="scoreboard-team-row mb-1"><span class="font-semibold">${game.awayTeam}</span><span class="font-bold text-lg">${game.awayScore}</span></div><div class="scoreboard-team-row"><span class="font-semibold">${game.homeTeam}</span><span class="font-bold text-lg">${game.homeScore}</span></div><div class="text-xs text-gray-400 mt-2 border-t border-gray-700 pt-1 text-center">${game.status}</div></div>`; }); } tickerContainer.innerHTML = tickerHTML + tickerHTML; }
         
-        // **NEW**: Fetch live data from Yahoo
         async function fetchYahooData() {
             try {
                 const response = await fetch('/api/get-yahoo-data');
                 if (!response.ok) {
-                    throw new Error('Failed to fetch Yahoo data');
+                    // **FIX**: Improved error message
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `Failed to fetch Yahoo data. Status: ${response.status}`);
                 }
                 const data = await response.json();
                 renderAll(data);
             } catch (error) {
                 console.error("Error fetching Yahoo data:", error);
-                // Optionally show an error on the page
-                document.getElementById('fantasy-ticker-container').innerHTML = `<div class="p-4 text-red-500 text-center w-full">Could not load live fantasy data. Connect account in Admin Panel.</div>`;
-                document.getElementById('standings-container').innerHTML = `<div class="p-4 text-red-500 text-center w-full">Could not load live fantasy data.</div>`;
+                const errorMessage = `Could not load live fantasy data. ${error.message.includes('Not authenticated') ? 'Connect account in Admin Panel.' : 'Please try again later.'}`;
+                document.getElementById('fantasy-ticker-container').innerHTML = `<div class="p-4 text-red-500 text-center w-full">${errorMessage}</div>`;
+                document.getElementById('standings-container').innerHTML = `<div class="p-4 text-red-500 text-center w-full">${errorMessage}</div>`;
             }
         }
         
