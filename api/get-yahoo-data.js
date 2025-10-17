@@ -25,7 +25,7 @@ async function getAccessToken(refreshToken) {
     return tokenData.access_token;
 }
 
-// **FIX**: A much safer helper function to find a specific object within Yahoo's complex arrays.
+// A safer helper function to find a specific object within Yahoo's complex arrays.
 const findObjectInArray = (arr, key) => arr.find(item => item && typeof item === 'object' && item[key]);
 
 export default async function handler(req, res) {
@@ -59,7 +59,6 @@ export default async function handler(req, res) {
         const standings = Object.values(rawStandings).map(item => {
             if (!item.team) return null;
             
-            // Defensively find the data we need instead of using hardcoded indexes
             const teamDetails = findObjectInArray(item.team, 'name');
             const teamLogos = findObjectInArray(item.team, 'team_logos');
             const outcomeTotals = findObjectInArray(item.team, 'outcome_totals')?.outcome_totals;
