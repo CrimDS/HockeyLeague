@@ -83,7 +83,8 @@
         
         async function fetchYahooData() {
             try {
-                const response = await fetch('/api/get-yahoo-data');
+                // **FIX**: Added credentials: 'include' to ensure the secure cookie is sent with the request.
+                const response = await fetch('/api/get-yahoo-data', { credentials: 'include' });
                 if (!response.ok) {
                     const errorData = await response.json();
                     throw new Error(errorData.error || `Failed to fetch Yahoo data. Status: ${response.status}`);
