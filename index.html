@@ -74,16 +74,36 @@
     </main>
     
 <script>
-    let allNews = [], currentNewsPage = 1, newsPerPage = 5;
+    let leagueData = {}, pageContent = {}, allNews = [], currentNewsPage = 1, newsPerPage = 5;
 
     document.addEventListener("DOMContentLoaded", () => {
         const tickerContainer = document.getElementById('ticker-container');
-        async function fetchScoreboard() { try { const response = await fetch('/api/nhl-scores'); if (!response.ok) throw new Error('Failed to fetch scoreboard'); const data = await response.json(); renderTicker(data.scores); } catch (error) { console.error("Error fetching scoreboard:", error); if (tickerContainer) tickerContainer.innerHTML = '<div class="p-4 text-red-500 text-center w-full">Could not load live scores.</div>'; } }
-        function renderTicker(games) { if (!tickerContainer) return; let tickerHTML = ''; if (!games || games.length === 0) { tickerHTML = `<div class="scoreboard-card items-center justify-center text-gray-500 w-full">No Games Scheduled Today</div>`; } else { games.forEach(game => { tickerHTML += `<div class="scoreboard-card justify-center"><div class="scoreboard-team-row mb-1"><span class="font-semibold">${game.awayTeam}</span><span class="font-bold text-lg">${game.awayScore}</span></div><div class="scoreboard-team-row"><span class="font-semibold">${game.homeTeam}</span><span class="font-bold text-lg">${game.homeScore}</span></div><div class="text-xs text-gray-400 mt-2 border-t border-gray-700 pt-1 text-center">${game.status}</div></div>`; }); } tickerContainer.innerHTML = tickerHTML + tickerHTML; }
+        async function fetchScoreboard() { 
+            try { 
+                const response = await fetch('/api/nhl-scores'); 
+                if (!response.ok) throw new Error('Failed to fetch scoreboard'); 
+                const data = await response.json(); 
+                renderTicker(data.scores); 
+            } catch (error) { 
+                console.error("Error fetching scoreboard:", error); 
+                if (tickerContainer) tickerContainer.innerHTML = '<div class="p-4 text-red-500 text-center w-full">Could not load live scores.</div>'; 
+            } 
+        }
+        function renderTicker(games) { 
+            if (!tickerContainer) return; 
+            let tickerHTML = ''; 
+            if (!games || games.length === 0) { 
+                tickerHTML = `<div class="scoreboard-card items-center justify-center text-gray-500 w-full">No Games Scheduled Today</div>`; 
+            } else { 
+                games.forEach(game => { 
+                    tickerHTML += `<div class="scoreboard-card justify-center"><div class="scoreboard-team-row mb-1"><span class="font-semibold">${game.awayTeam}</span><span class="font-bold text-lg">${game.awayScore}</span></div><div class="scoreboard-team-row"><span class="font-semibold">${game.homeTeam}</span><span class="font-bold text-lg">${game.homeScore}</span></div><div class="text-xs text-gray-400 mt-2 border-t border-gray-700 pt-1 text-center">${game.status}</div></div>`; 
+                }); 
+            } 
+            tickerContainer.innerHTML = tickerHTML + tickerHTML; 
+        }
         
         async function fetchYahooData() {
             try {
-                // **FIX**: Added credentials: 'include' to ensure the secure cookie is sent with the request.
                 const response = await fetch('/api/get-yahoo-data', { credentials: 'include' });
                 if (!response.ok) {
                     const errorData = await response.json();
@@ -125,7 +145,6 @@
             if(!container) return;
             container.innerHTML = "";
             if (standings.length === 0) {
-                // **FIX**: Add a message when no standings are available, instead of leaving it blank.
                 container.innerHTML = `<p class="text-center text-gray-500">Standings could not be loaded.</p>`;
                 return;
             }
