@@ -1,6 +1,6 @@
 // api/get-yahoo-data.js
 
-// [FINAL, ROBUST VERSION] This version uses a much safer parsing method to handle Yahoo's inconsistent API responses.
+// [FINAL, ROBUST VERSION] This version uses a much safer, more direct parsing method to handle Yahoo's inconsistent API responses.
 
 async function getAccessToken(refreshToken) {
     const clientId = process.env.YAHOO_CLIENT_ID;
@@ -25,16 +25,17 @@ async function getAccessToken(refreshToken) {
     return tokenData.access_token;
 }
 
-// **FIX**: A new, more robust helper function that converts Yahoo's array of single-key objects into one simple object.
-// E.g., [ {name: 'Team A'}, {rank: 1} ] becomes { name: 'Team A', rank: 1 }
-const flattenYahooObjectArray = (arr) => {
-    if (!Array.isArray(arr)) return {};
-    return arr.reduce((acc, curr) => {
-        if (typeof curr === 'object' && curr !== null) {
-            Object.assign(acc, curr);
+// **NEW, SAFER PARSER**: This helper function navigates the complex nested arrays to find a specific key.
+const findValueByKey = (arr, key) => {
+    for (const item of arr) {
+        if (Array.isArray(item)) {
+            const result = findValueByKey(item, key);
+            if (result) return result;
+        } else if (typeof item === 'object' && item !== null && item[key]) {
+            return item[key];
         }
-        return acc;
-    }, {});
+    }
+    return null;
 };
 
 
@@ -69,15 +70,21 @@ export default async function handler(req, res) {
         const standings = Object.values(rawStandings).map(item => {
             if (!item || !item.team) return null;
             
-            const teamData = flattenYahooObjectArray(item.team);
+            const teamArray = item.team;
+            const name = findValueByKey(teamArray, 'name');
+            const logo = findValueByKey(teamArray, 'team_logos')?.[0]?.team_logo?.url;
+            const outcomeTotals = findValueByKey(teamArray, 'outcome_totals');
+            const rank = findValueByKey(teamArray, 'rank');
+
+            if (!name || !outcomeTotals) return null;
 
             return {
-                name: teamData.name,
-                logo: teamData.team_logos?.[0]?.team_logo?.url || 'https://placehold.co/48x48/111/fff?text=?',
-                wins: teamData.outcome_totals?.wins || 0,
-                losses: teamData.outcome_totals?.losses || 0,
-                ties: teamData.outcome_totals?.ties || 0,
-                rank: teamData.rank || 0
+                name: name,
+                logo: logo || 'https://placehold.co/48x48/111/fff?text=?',
+                wins: outcomeTotals.wins,
+                losses: outcomeTotals.losses,
+                ties: outcomeTotals.ties,
+                rank: rank || 0
             };
         }).filter(Boolean).sort((a,b) => parseInt(a.rank) - parseInt(b.rank));
 
@@ -91,20 +98,22 @@ export default async function handler(req, res) {
             const teams = Object.values(item.matchup['0'].teams);
             if (teams.length < 2) return null;
 
-            const team1Data = flattenYahooObjectArray(teams[0].team);
-            const team2Data = flattenYahooObjectArray(teams[1].team);
+            const team1Array = teams[0].team;
+            const team2Array = teams[1].team;
+            
+            const team1Name = findValueByKey(team1Array, 'name');
+            const team1Logo = findValueByKey(team1Array, 'team_logos')?.[0]?.team_logo?.url;
+            const team1Score = findValueByKey(team1Array, 'team_points')?.total;
+            
+            const team2Name = findValueByKey(team2Array, 'name');
+            const team2Logo = findValueByKey(team2Array, 'team_logos')?.[0]?.team_logo?.url;
+            const team2Score = findValueByKey(team2Array, 'team_points')?.total;
+
+            if(!team1Name || !team2Name) return null;
 
             return {
-                team1: {
-                    name: team1Data.name,
-                    logo: team1Data.team_logos?.[0]?.team_logo?.url || '',
-                    score: team1Data.team_points?.total || 0
-                },
-                team2: {
-                    name: team2Data.name,
-                    logo: team2Data.team_logos?.[0]?.team_logo?.url || '',
-                    score: team2Data.team_points?.total || 0
-                }
+                team1: { name: team1Name, logo: team1Logo || '', score: team1Score || 0 },
+                team2: { name: team2Name, logo: team2Logo || '', score: team2Score || 0 }
             };
         }).filter(Boolean);
 
