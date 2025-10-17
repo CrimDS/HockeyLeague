@@ -1,6 +1,6 @@
 // api/get-yahoo-data.js
 
-// [FINAL, ROBUST VERSION] This version uses a much safer, more direct parsing method to handle Yahoo's inconsistent API responses.
+// [FINAL, MOST ROBUST VERSION] This version correctly parses the nested 'team_standings' object from the Yahoo API.
 
 async function getAccessToken(refreshToken) {
     const clientId = process.env.YAHOO_CLIENT_ID;
@@ -25,7 +25,7 @@ async function getAccessToken(refreshToken) {
     return tokenData.access_token;
 }
 
-// A helper function that intelligently flattens Yahoo's complex array-of-objects structure.
+// A helper to flatten Yahoo's array of single-key objects.
 const flattenYahooObjectArray = (arr) => {
     if (!Array.isArray(arr)) return {};
     return arr.reduce((acc, curr) => {
@@ -35,7 +35,6 @@ const flattenYahooObjectArray = (arr) => {
         return acc;
     }, {});
 };
-
 
 export default async function handler(req, res) {
     const refreshToken = req.cookies.yahoo_refresh_token;
@@ -74,38 +73,17 @@ export default async function handler(req, res) {
             
             if (!name) return null;
 
-            let wins = 0, losses = 0, ties = 0, rank = 0;
-
-            // **FIX**: The rank and records are nested inside 'team_standings'. We access this directly.
-            if (teamData.team_standings) {
-                rank = teamData.team_standings.rank || 0;
-                if (teamData.team_standings.outcome_totals) {
-                    wins = teamData.team_standings.outcome_totals.wins || 0;
-                    losses = teamData.team_standings.outcome_totals.losses || 0;
-                    ties = teamData.team_standings.outcome_totals.ties || 0;
-                }
-            }
+            // **FIX**: The rank and records are nested inside 'team_standings'. We access this directly and safely.
+            const standingsInfo = teamData.team_standings;
+            const rank = standingsInfo?.rank || 0;
+            const outcomeTotals = standingsInfo?.outcome_totals;
             
-            // Fallback for a different, known Yahoo API structure.
-            if (wins === 0 && losses === 0 && ties === 0) {
-                const teamStats = teamData.team_stats?.stats;
-                if(teamStats) {
-                     const outcomeStat = teamStats.find(s => s.stat.stat_id === "9004003");
-                     if (outcomeStat && typeof outcomeStat.stat.value === 'string') {
-                         const parts = outcomeStat.stat.value.split('-');
-                         wins = parts[0] || 0;
-                         losses = parts[1] || 0;
-                         ties = parts[2] || 0;
-                     }
-                }
-            }
-
             return {
                 name: name,
                 logo: logo || 'https://placehold.co/48x48/111/fff?text=?',
-                wins: wins,
-                losses: losses,
-                ties: ties,
+                wins: outcomeTotals?.wins || 0,
+                losses: outcomeTotals?.losses || 0,
+                ties: outcomeTotals?.ties || 0,
                 rank: rank
             };
         }).filter(Boolean).sort((a,b) => parseInt(a.rank) - parseInt(b.rank));
