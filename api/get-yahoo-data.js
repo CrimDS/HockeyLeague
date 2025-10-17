@@ -1,6 +1,6 @@
 // api/get-yahoo-data.js
 
-// This single endpoint fetches both standings and scoreboard data for the public-facing homepage.
+// [FINAL VERSION] This version uses robust, defensive parsing to handle inconsistencies in the Yahoo API response.
 
 async function getAccessToken(refreshToken) {
     const clientId = process.env.YAHOO_CLIENT_ID;
@@ -12,10 +12,7 @@ async function getAccessToken(refreshToken) {
 
     const response = await fetch(tokenUrl, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Authorization': `Basic ${basicAuth}`
-        },
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': `Basic ${basicAuth}` },
         body: new URLSearchParams({ 'grant_type': 'refresh_token', 'refresh_token': refreshToken })
     });
 
@@ -28,27 +25,19 @@ async function getAccessToken(refreshToken) {
     return tokenData.access_token;
 }
 
-// Helper function to simplify parsing the complex Yahoo API response
-const cleanYahooData = (data) => {
-    if (!data) return [];
-    // The actual data is always in a numbered object, so we get the first value.
-    const collection = Object.values(data)[0];
-    // The data is then in an array under a key like 'league' or 'matchup'
-    const key = Object.keys(collection).find(k => Array.isArray(collection[k]));
-    return key ? collection[key] : [];
-};
+// **FIX**: A much safer helper function to find a specific object within Yahoo's complex arrays.
+const findObjectInArray = (arr, key) => arr.find(item => item && typeof item === 'object' && item[key]);
 
 export default async function handler(req, res) {
     const refreshToken = req.cookies.yahoo_refresh_token;
     if (!refreshToken) {
-        return res.status(401).json({ error: "Not authenticated with Yahoo. Please connect your account in the Admin Panel." });
+        return res.status(401).json({ error: "Not authenticated. Please connect your account in the Admin Panel." });
     }
 
     try {
         const accessToken = await getAccessToken(refreshToken);
         const leagueKey = '465.l.6058';
         
-        // Fetch standings and scoreboard data in parallel for efficiency
         const standingsUrl = `https://fantasysports.yahooapis.com/fantasy/v2/league/${leagueKey}/standings?format=json`;
         const scoreboardUrl = `https://fantasysports.yahooapis.com/fantasy/v2/league/${leagueKey}/scoreboard?format=json`;
 
@@ -57,50 +46,73 @@ export default async function handler(req, res) {
             fetch(scoreboardUrl, { headers: { 'Authorization': `Bearer ${accessToken}` } })
         ]);
 
-        if (!standingsResponse.ok || !scoreboardResponse.ok) {
-            throw new Error("One or more Yahoo API requests failed.");
-        }
+        if (!standingsResponse.ok) throw new Error("Yahoo API request for standings failed.");
+        if (!scoreboardResponse.ok) throw new Error("Yahoo API request for scoreboard failed.");
 
         const standingsData = await standingsResponse.json();
         const scoreboardData = await scoreboardResponse.json();
 
         // --- Process Standings ---
-        const rawStandings = cleanYahooData(standingsData.fantasy_content.league[1].standings[0].teams);
-        const standings = rawStandings.map(item => {
-            const team = item.team[0];
-            const outcomeTotals = item.team[3].outcome_totals;
+        const rawStandings = standingsData?.fantasy_content?.league?.[1]?.standings?.[0]?.teams;
+        if (!rawStandings) throw new Error("Could not find standings data in Yahoo's response.");
+
+        const standings = Object.values(rawStandings).map(item => {
+            if (!item.team) return null;
             
+            // Defensively find the data we need instead of using hardcoded indexes
+            const teamDetails = findObjectInArray(item.team, 'name');
+            const teamLogos = findObjectInArray(item.team, 'team_logos');
+            const outcomeTotals = findObjectInArray(item.team, 'outcome_totals')?.outcome_totals;
+            const rank = findObjectInArray(item.team, 'rank')?.rank;
+
+            if (!teamDetails || !outcomeTotals) return null;
+
             return {
-                team_id: team[0].team_id,
-                name: team[2].name,
-                logo: team[5].team_logos[0].team_logo.url,
+                name: teamDetails.name,
+                logo: teamLogos?.team_logos?.[0]?.team_logo?.url || 'https://placehold.co/48x48/111/fff?text=?',
                 wins: outcomeTotals.wins,
                 losses: outcomeTotals.losses,
                 ties: outcomeTotals.ties,
-                rank: item.team[15].rank
+                rank: rank || 0
             };
-        }).sort((a,b) => parseInt(a.rank) - parseInt(b.rank));
-
+        }).filter(Boolean).sort((a,b) => parseInt(a.rank) - parseInt(b.rank));
 
         // --- Process Matchups ---
-        const rawMatchups = cleanYahooData(scoreboardData.fantasy_content.league[1].scoreboard[0].matchups);
-        const matchups = rawMatchups.map(item => {
-            const matchup = item.matchup;
-            const team1Data = matchup[0].teams[0].team;
-            const team2Data = matchup[0].teams[1].team;
+        const rawMatchups = scoreboardData?.fantasy_content?.league?.[1]?.scoreboard?.[0]?.matchups;
+        if (!rawMatchups) throw new Error("Could not find matchups data in Yahoo's response.");
+        
+        const matchups = Object.values(rawMatchups).map(item => {
+            if (!item.matchup?.['0']?.teams) return null;
+            
+            const teams = Object.values(item.matchup['0'].teams);
+            if (teams.length < 2) return null;
+
+            const team1Data = teams[0].team;
+            const team2Data = teams[1].team;
+            
+            const team1Details = findObjectInArray(team1Data, 'name');
+            const team1Logos = findObjectInArray(team1Data, 'team_logos');
+            const team1Points = findObjectInArray(team1Data, 'team_points')?.team_points;
+            
+            const team2Details = findObjectInArray(team2Data, 'name');
+            const team2Logos = findObjectInArray(team2Data, 'team_logos');
+            const team2Points = findObjectInArray(team2Data, 'team_points')?.team_points;
+
+            if(!team1Details || !team2Details) return null;
+
             return {
                 team1: {
-                    name: team1Data[0][2].name,
-                    logo: team1Data[0][5].team_logos[0].team_logo.url,
-                    score: team1Data[1].team_points.total
+                    name: team1Details.name,
+                    logo: team1Logos?.team_logos?.[0]?.team_logo?.url || '',
+                    score: team1Points?.total || 0
                 },
                 team2: {
-                    name: team2Data[0][2].name,
-                    logo: team2Data[0][5].team_logos[0].team_logo.url,
-                    score: team2Data[1].team_points.total
+                    name: team2Details.name,
+                    logo: team2Logos?.team_logos?.[0]?.team_logo?.url || '',
+                    score: team2Points?.total || 0
                 }
             };
-        });
+        }).filter(Boolean);
 
         res.status(200).json({ standings, matchups });
 

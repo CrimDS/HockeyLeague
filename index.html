@@ -74,6 +74,8 @@
     </main>
     
 <script>
+    let allNews = [], currentNewsPage = 1, newsPerPage = 5;
+
     document.addEventListener("DOMContentLoaded", () => {
         const tickerContainer = document.getElementById('ticker-container');
         async function fetchScoreboard() { try { const response = await fetch('/api/nhl-scores'); if (!response.ok) throw new Error('Failed to fetch scoreboard'); const data = await response.json(); renderTicker(data.scores); } catch (error) { console.error("Error fetching scoreboard:", error); if (tickerContainer) tickerContainer.innerHTML = '<div class="p-4 text-red-500 text-center w-full">Could not load live scores.</div>'; } }
@@ -83,7 +85,6 @@
             try {
                 const response = await fetch('/api/get-yahoo-data');
                 if (!response.ok) {
-                    // **FIX**: Improved error message
                     const errorData = await response.json();
                     throw new Error(errorData.error || `Failed to fetch Yahoo data. Status: ${response.status}`);
                 }
@@ -131,8 +132,11 @@
         // Initial Load
         fetchScoreboard(); 
         fetchYahooData();
-        // The news functions are still here but omitted for brevity
+        fetchHockeyNews();
     });
+
+    async function fetchHockeyNews() { const container = document.getElementById('news-container'); container.innerHTML = `<p class="text-gray-400">Fetching news...</p>`; try { const response = await fetch('/api/hockey-news'); const data = await response.json(); if (data.headlines && data.headlines.length > 0) { allNews = data.headlines; currentNewsPage = 1; renderNews(); } else { container.innerHTML = `<p class="text-gray-500">No recent news found.</p>`; } } catch (error) { console.error("Error fetching hockey news:", error); container.innerHTML = `<p class="text-red-500">Could not fetch news.</p>`; } }
+    function renderNews() { const container = document.getElementById('news-container'); const paginationContainer = document.getElementById('news-pagination'); container.innerHTML = ''; paginationContainer.innerHTML = ''; const start = (currentNewsPage - 1) * newsPerPage; const end = start + newsPerPage; const paginatedNews = allNews.slice(start, end); paginatedNews.forEach(item => { container.innerHTML += `<div class="news-headline"><a href="${item.link}" target="_blank" rel="noopener noreferrer">${item.title}</a></div>`; }); const totalPages = Math.ceil(allNews.length / newsPerPage); if (totalPages > 1) { paginationContainer.innerHTML = `<button id="prev-news-btn" class="btn-secondary text-xs">Prev</button><span class="text-xs text-gray-400">Page ${currentNewsPage} of ${totalPages}</span><button id="next-news-btn" class="btn-secondary text-xs">Next</button>`; const prevBtn = document.getElementById('prev-news-btn'); const nextBtn = document.getElementById('next-news-btn'); prevBtn.disabled = currentNewsPage === 1; nextBtn.disabled = currentNewsPage === totalPages; prevBtn.addEventListener('click', () => { currentNewsPage--; renderNews(); }); nextBtn.addEventListener('click', () => { currentNewsPage++; renderNews(); }); } }
 </script>
 </body>
 </html>
