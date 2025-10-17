@@ -62,7 +62,6 @@
     </main>
     
     <div id="admin-login-modal" class="fixed inset-0 z-50 items-center justify-center flex modal-backdrop"><div class="card no-hover p-8 rounded-lg w-full max-w-sm"><h2 class="text-2xl font-bold text-white mb-4">Admin Login</h2><p id="login-error" class="text-red-500 text-sm mb-4 hidden">Invalid password.</p><form id="login-form"><input id="password-input" type="password" class="form-input mb-4" placeholder="Enter password..."><div class="flex justify-end space-x-4"><button type="button" onclick="window.location.href='index.html'" class="btn-secondary">Cancel</button><button type="submit" class="btn-primary">Login</button></div></form></div></div>
-    <!-- Other modals will be here -->
     <div id="edit-matchup-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop"><!--...--></div>
     <div id="team-manager-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop"><!--...--></div>
     <div id="edit-team-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop"><!--...--></div>
@@ -70,7 +69,7 @@
 
     <script>
         let leagueData={},pageContent={},isAdmin=!1,isEditingContent=!1;
-        const defaultData = { /* ... same as index.html ... */ };
+        const defaultData = { /* ... */ };
         document.addEventListener('DOMContentLoaded', () => {
             checkAdminState();
             if (isAdmin) {
@@ -82,11 +81,9 @@
             }
              document.getElementById('login-form').addEventListener('submit', handleLogin);
         });
-
         function checkAdminState(){if("true"===sessionStorage.getItem("isAdmin"))isAdmin=!0}
         function handleLogin(e){e.preventDefault();if("foxandhounds"===document.getElementById("password-input").value){isAdmin=!0,sessionStorage.setItem("isAdmin","true"),window.location.reload()}}
         function logout(){isAdmin=!1,sessionStorage.removeItem("isAdmin"),window.location.href="index.html"}
-        
         function loadData(){const e=localStorage.getItem("foxAndHoundsData");leagueData=e?JSON.parse(e):JSON.parse(JSON.stringify(defaultData))}
         function saveData(){localStorage.setItem("foxAndHoundsData",JSON.stringify(leagueData))}
         function loadContent(){
@@ -95,7 +92,6 @@
             document.getElementById('matchups-header').innerHTML = pageContent['matchups-header'] || '<h2 class="text-2xl font-semibold text-white">Weekly Matchups</h2>';
             document.getElementById('standings-header').innerHTML = pageContent['standings-header'] || '<h2 class="text-2xl font-semibold text-white">League Standings</h2>';
         }
-
         function toggleContentEditor() {
             isEditingContent = !isEditingContent;
             const btn = document.getElementById('content-editor-btn');
@@ -116,6 +112,7 @@
                 alert("Content saved!");
             }
         }
+        // ALL OTHER MODAL/DATA FUNCTIONS GO HERE
     </script>
 </body>
 </html>
