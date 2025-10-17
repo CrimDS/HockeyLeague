@@ -1,6 +1,6 @@
 // api/yahoo-callback.js
 
-// This function now handles exchanging the temporary code for an access token.
+// This function now securely stores the refresh token in a cookie and redirects.
 export default async function handler(req, res) {
     const { code, error } = req.query;
 
@@ -12,17 +12,16 @@ export default async function handler(req, res) {
         return res.status(400).send("No authorization code provided by Yahoo.");
     }
     
-    // --- Step 2: Exchange the code for an access token ---
     const clientId = process.env.YAHOO_CLIENT_ID;
     const clientSecret = process.env.YAHOO_CLIENT_SECRET;
-    const clientOrigin = req.headers.referer ? new URL(req.headers.referer).origin : `https://${process.env.VERCEL_URL}`;
+    // Determine the origin from where the request started to build the correct redirect URI
+    const clientOrigin = req.headers['x-forwarded-proto'] + '://' + req.headers['host'];
     const redirectUri = `${clientOrigin}/api/yahoo-callback`;
 
     if (!clientId || !clientSecret) {
         return res.status(500).send("Server configuration error: Yahoo client credentials are not set.");
     }
 
-    // We need to create a Base64 encoded string of "CLIENT_ID:CLIENT_SECRET" for the Authorization header.
     const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
     const tokenUrl = 'https://api.login.yahoo.com/oauth2/get_token';
 
@@ -47,21 +46,13 @@ export default async function handler(req, res) {
 
         const tokenData = await response.json();
 
-        // For now, we display the tokens to confirm success.
-        // In a real application, these would be securely stored in a database.
-        res.status(200).send(`
-            <div style="font-family: sans-serif; background: #111; color: #eee; padding: 2rem; border-left: 5px solid green;">
-                <h1>Token Exchange Successful!</h1>
-                <p>We have successfully traded the temporary code for permanent access tokens. We can now start making requests to the Yahoo API.</p>
-                <div style="background: #222; padding: 1rem; border-radius: 6px; margin: 1rem 0; word-break: break-all;">
-                    <p><strong>Access Token:</strong> ${tokenData.access_token}</p>
-                    <hr style="border-color: #333; margin: 1rem 0;">
-                    <p><strong>Refresh Token:</strong> ${tokenData.refresh_token}</p>
-                </div>
-                <br>
-                <a href="/admin.html" style="color: #FFD700;">Return to Admin Panel</a>
-            </div>
-        `);
+        // **FIX**: Securely store the refresh_token in an HttpOnly cookie.
+        // This token is long-lived and allows us to get new access tokens in the future.
+        // Max-Age is set to 1 year in seconds.
+        res.setHeader('Set-Cookie', `yahoo_refresh_token=${tokenData.refresh_token}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=31536000`);
+
+        // Redirect the user back to the admin panel with a success flag.
+        res.redirect(302, '/admin.html?yahoo_connected=true');
 
     } catch (err) {
         console.error("Error exchanging code for token:", err);

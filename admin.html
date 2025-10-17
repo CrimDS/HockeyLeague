@@ -37,7 +37,11 @@
     </header>
 
     <main id="admin-panel" class="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 hidden">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div id="yahoo-success-message" class="hidden bg-green-900 border border-green-700 text-green-200 px-4 py-3 rounded-lg relative mb-6" role="alert">
+            <strong class="font-bold">Success!</strong>
+            <span class="block sm:inline">Your Yahoo account is connected. You can now fetch live league data.</span>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div class="card p-6">
                 <h2 class="text-xl font-bold text-white mb-4">Manage League Data (Manual)</h2>
                 <div class="space-y-4">
@@ -50,8 +54,13 @@
                 <h2 class="text-xl font-bold text-white mb-4">Yahoo Fantasy API</h2>
                 <div class="space-y-4">
                     <p class="text-sm text-gray-400">Connect your Yahoo account to automatically sync league data.</p>
-                    <button id="yahoo-connect-btn" class="w-full btn-primary">Connect Yahoo Account</button>
+                    <a href="/api/yahoo-login" class="w-full btn-primary">Connect Yahoo Account</a>
                 </div>
+            </div>
+            <div class="card p-6 lg:col-span-3">
+                <h2 class="text-xl font-bold text-white mb-4">Yahoo League Data</h2>
+                <button id="fetch-leagues-btn" class="admin-btn mb-4">Fetch My Leagues</button>
+                <pre id="leagues-output" class="bg-black p-4 rounded-md text-xs overflow-x-auto h-96"></pre>
             </div>
         </div>
     </main>
@@ -72,17 +81,34 @@
                 document.getElementById('admin-login-modal').style.display = 'none';
                 document.getElementById('admin-panel').classList.remove('hidden');
                 loadData();
-                document.getElementById('yahoo-connect-btn').addEventListener('click', () => {
-                    // **FIX**: Send the client's current URL to the backend
-                    const origin = window.location.origin;
-                    window.location.href = `/api/yahoo-login?origin=${encodeURIComponent(origin)}`;
+                
+                // Check for the success flag from the Yahoo redirect
+                const urlParams = new URLSearchParams(window.location.search);
+                if (urlParams.get('yahoo_connected') === 'true') {
+                    document.getElementById('yahoo-success-message').classList.remove('hidden');
+                }
+
+                document.getElementById('fetch-leagues-btn').addEventListener('click', async () => {
+                    const output = document.getElementById('leagues-output');
+                    output.textContent = 'Fetching leagues...';
+                    try {
+                        const response = await fetch('/api/get-yahoo-leagues');
+                        const data = await response.json();
+                        if (response.ok) {
+                             output.textContent = JSON.stringify(data, null, 2);
+                        } else {
+                            output.textContent = `Error: ${data.error || 'Failed to fetch'}`;
+                        }
+                    } catch (error) {
+                        output.textContent = `An error occurred: ${error.message}`;
+                    }
                 });
             }
              document.getElementById('login-form').addEventListener('submit', handleLogin);
         });
         function checkAdminState(){if("true"===sessionStorage.getItem("isAdmin"))isAdmin=!0}
         function handleLogin(e){e.preventDefault();if("foxandhounds"===document.getElementById("password-input").value){isAdmin=!0,sessionStorage.setItem("isAdmin","true"),window.location.reload()}}
-        function logout(){isAdmin=!1,sessionStorage.removeItem("isAdmin"),window.location.href="index.html"}
+        function logout(){document.cookie="yahoo_refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/;";sessionStorage.removeItem("isAdmin"),window.location.href="index.html"}
         function loadData(){const e=localStorage.getItem("foxAndHoundsData");leagueData=e?JSON.parse(e):{teams:[], matchups:[]}}
         function saveData(){localStorage.setItem("foxAndHoundsData",JSON.stringify(leagueData))}
         
