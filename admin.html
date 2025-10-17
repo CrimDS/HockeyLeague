@@ -59,7 +59,10 @@
             </div>
             <div class="card p-6 lg:col-span-3">
                 <h2 class="text-xl font-bold text-white mb-4">Yahoo League Data</h2>
-                <button id="fetch-leagues-btn" class="admin-btn mb-4">Fetch My Leagues</button>
+                <div class="flex space-x-4 mb-4">
+                    <button id="fetch-leagues-btn" class="admin-btn">Fetch My Leagues</button>
+                    <button id="fetch-matchups-btn" class="admin-btn">Fetch Weekly Matchups</button>
+                </div>
                 <pre id="leagues-output" class="bg-black p-4 rounded-md text-xs overflow-x-auto h-96"></pre>
             </div>
         </div>
@@ -82,17 +85,13 @@
                 document.getElementById('admin-panel').classList.remove('hidden');
                 loadData();
                 
-                // Check for the success flag from the Yahoo redirect
                 const urlParams = new URLSearchParams(window.location.search);
                 if (urlParams.get('yahoo_connected') === 'true') {
                     document.getElementById('yahoo-success-message').classList.remove('hidden');
                 }
 
-                // **FIX**: Changed from an `<a>` tag to a `<button>` with a JS event listener
                 document.getElementById('yahoo-connect-btn').addEventListener('click', () => {
-                    // This dynamically gets the current URL origin (e.g., https://your-site.vercel.app)
                     const origin = window.location.origin;
-                    // And sends it to the backend, which guarantees the redirect_uri will match.
                     window.location.href = `/api/yahoo-login?origin=${encodeURIComponent(origin)}`;
                 });
 
@@ -102,11 +101,19 @@
                     try {
                         const response = await fetch('/api/get-yahoo-leagues');
                         const data = await response.json();
-                        if (response.ok) {
-                             output.textContent = JSON.stringify(data, null, 2);
-                        } else {
-                            output.textContent = `Error: ${data.error || 'Failed to fetch'}`;
-                        }
+                        output.textContent = response.ok ? JSON.stringify(data, null, 2) : `Error: ${data.error || 'Failed to fetch'}`;
+                    } catch (error) {
+                        output.textContent = `An error occurred: ${error.message}`;
+                    }
+                });
+
+                document.getElementById('fetch-matchups-btn').addEventListener('click', async () => {
+                    const output = document.getElementById('leagues-output');
+                    output.textContent = 'Fetching matchups...';
+                    try {
+                        const response = await fetch('/api/get-yahoo-matchups');
+                        const data = await response.json();
+                        output.textContent = response.ok ? JSON.stringify(data, null, 2) : `Error: ${data.error || 'Failed to fetch'}`;
                     } catch (error) {
                         output.textContent = `An error occurred: ${error.message}`;
                     }
