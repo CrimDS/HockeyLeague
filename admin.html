@@ -50,7 +50,7 @@
                 <h2 class="text-xl font-bold text-white mb-4">Yahoo Fantasy API</h2>
                 <div class="space-y-4">
                     <p class="text-sm text-gray-400">Connect your Yahoo account to automatically sync league data.</p>
-                    <a href="/api/yahoo-login" class="w-full btn-primary">Connect Yahoo Account</a>
+                    <button id="yahoo-connect-btn" class="w-full btn-primary">Connect Yahoo Account</button>
                 </div>
             </div>
         </div>
@@ -72,6 +72,11 @@
                 document.getElementById('admin-login-modal').style.display = 'none';
                 document.getElementById('admin-panel').classList.remove('hidden');
                 loadData();
+                document.getElementById('yahoo-connect-btn').addEventListener('click', () => {
+                    // **FIX**: Send the client's current URL to the backend
+                    const origin = window.location.origin;
+                    window.location.href = `/api/yahoo-login?origin=${encodeURIComponent(origin)}`;
+                });
             }
              document.getElementById('login-form').addEventListener('submit', handleLogin);
         });
