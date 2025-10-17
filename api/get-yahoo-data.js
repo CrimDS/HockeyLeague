@@ -25,16 +25,13 @@ async function getAccessToken(refreshToken) {
     return tokenData.access_token;
 }
 
-// **NEW, SAFER PARSER**: This helper function converts Yahoo's array of single-key objects into one simple object.
+// **FIX**: A new, more robust helper function that converts Yahoo's array of single-key objects into one simple object.
 // E.g., [ {name: 'Team A'}, {rank: 1} ] becomes { name: 'Team A', rank: 1 }
 const flattenYahooObjectArray = (arr) => {
     if (!Array.isArray(arr)) return {};
     return arr.reduce((acc, curr) => {
         if (typeof curr === 'object' && curr !== null) {
-            const key = Object.keys(curr)[0];
-            if (key) {
-                acc[key] = curr[key];
-            }
+            Object.assign(acc, curr);
         }
         return acc;
     }, {});
