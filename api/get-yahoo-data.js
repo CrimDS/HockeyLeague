@@ -1,6 +1,6 @@
 // api/get-yahoo-data.js
 
-// [FINAL VERSION] This version uses robust, defensive parsing to handle inconsistencies in the Yahoo API response.
+// [FINAL, ROBUST VERSION] This version uses a much safer parsing method to handle Yahoo's inconsistent API responses.
 
 async function getAccessToken(refreshToken) {
     const clientId = process.env.YAHOO_CLIENT_ID;
@@ -25,8 +25,21 @@ async function getAccessToken(refreshToken) {
     return tokenData.access_token;
 }
 
-// A safer helper function to find a specific object within Yahoo's complex arrays.
-const findObjectInArray = (arr, key) => arr.find(item => item && typeof item === 'object' && item[key]);
+// **NEW, SAFER PARSER**: This helper function converts Yahoo's array of single-key objects into one simple object.
+// E.g., [ {name: 'Team A'}, {rank: 1} ] becomes { name: 'Team A', rank: 1 }
+const flattenYahooObjectArray = (arr) => {
+    if (!Array.isArray(arr)) return {};
+    return arr.reduce((acc, curr) => {
+        if (typeof curr === 'object' && curr !== null) {
+            const key = Object.keys(curr)[0];
+            if (key) {
+                acc[key] = curr[key];
+            }
+        }
+        return acc;
+    }, {});
+};
+
 
 export default async function handler(req, res) {
     const refreshToken = req.cookies.yahoo_refresh_token;
@@ -57,22 +70,17 @@ export default async function handler(req, res) {
         if (!rawStandings) throw new Error("Could not find standings data in Yahoo's response.");
 
         const standings = Object.values(rawStandings).map(item => {
-            if (!item.team) return null;
+            if (!item || !item.team) return null;
             
-            const teamDetails = findObjectInArray(item.team, 'name');
-            const teamLogos = findObjectInArray(item.team, 'team_logos');
-            const outcomeTotals = findObjectInArray(item.team, 'outcome_totals')?.outcome_totals;
-            const rank = findObjectInArray(item.team, 'rank')?.rank;
-
-            if (!teamDetails || !outcomeTotals) return null;
+            const teamData = flattenYahooObjectArray(item.team);
 
             return {
-                name: teamDetails.name,
-                logo: teamLogos?.team_logos?.[0]?.team_logo?.url || 'https://placehold.co/48x48/111/fff?text=?',
-                wins: outcomeTotals.wins,
-                losses: outcomeTotals.losses,
-                ties: outcomeTotals.ties,
-                rank: rank || 0
+                name: teamData.name,
+                logo: teamData.team_logos?.[0]?.team_logo?.url || 'https://placehold.co/48x48/111/fff?text=?',
+                wins: teamData.outcome_totals?.wins || 0,
+                losses: teamData.outcome_totals?.losses || 0,
+                ties: teamData.outcome_totals?.ties || 0,
+                rank: teamData.rank || 0
             };
         }).filter(Boolean).sort((a,b) => parseInt(a.rank) - parseInt(b.rank));
 
@@ -81,34 +89,24 @@ export default async function handler(req, res) {
         if (!rawMatchups) throw new Error("Could not find matchups data in Yahoo's response.");
         
         const matchups = Object.values(rawMatchups).map(item => {
-            if (!item.matchup?.['0']?.teams) return null;
+             if (!item.matchup?.['0']?.teams) return null;
             
             const teams = Object.values(item.matchup['0'].teams);
             if (teams.length < 2) return null;
 
-            const team1Data = teams[0].team;
-            const team2Data = teams[1].team;
-            
-            const team1Details = findObjectInArray(team1Data, 'name');
-            const team1Logos = findObjectInArray(team1Data, 'team_logos');
-            const team1Points = findObjectInArray(team1Data, 'team_points')?.team_points;
-            
-            const team2Details = findObjectInArray(team2Data, 'name');
-            const team2Logos = findObjectInArray(team2Data, 'team_logos');
-            const team2Points = findObjectInArray(team2Data, 'team_points')?.team_points;
-
-            if(!team1Details || !team2Details) return null;
+            const team1Data = flattenYahooObjectArray(teams[0].team);
+            const team2Data = flattenYahooObjectArray(teams[1].team);
 
             return {
                 team1: {
-                    name: team1Details.name,
-                    logo: team1Logos?.team_logos?.[0]?.team_logo?.url || '',
-                    score: team1Points?.total || 0
+                    name: team1Data.name,
+                    logo: team1Data.team_logos?.[0]?.team_logo?.url || '',
+                    score: team1Data.team_points?.total || 0
                 },
                 team2: {
-                    name: team2Details.name,
-                    logo: team2Logos?.team_logos?.[0]?.team_logo?.url || '',
-                    score: team2Points?.total || 0
+                    name: team2Data.name,
+                    logo: team2Data.team_logos?.[0]?.team_logo?.url || '',
+                    score: team2Data.team_points?.total || 0
                 }
             };
         }).filter(Boolean);

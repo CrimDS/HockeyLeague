@@ -124,7 +124,11 @@
             const container = document.getElementById("standings-container");
             if(!container) return;
             container.innerHTML = "";
-            if (standings.length === 0) return;
+            if (standings.length === 0) {
+                // **FIX**: Add a message when no standings are available, instead of leaving it blank.
+                container.innerHTML = `<p class="text-center text-gray-500">Standings could not be loaded.</p>`;
+                return;
+            }
             standings.forEach(team => {
                 container.innerHTML += `<li class="py-3 flex justify-between items-center"><div class="flex items-center"><span class="rank-number w-6 text-center">${team.rank}</span><img class="team-logo-sm w-8 h-8 ml-3" src="${team.logo}" alt="${team.name} logo"><p class="ml-3 font-medium text-white">${team.name}</p></div><p class="text-gray-400 font-mono text-sm">${team.wins}-${team.losses}-${team.ties}</p></li>`;
             });
