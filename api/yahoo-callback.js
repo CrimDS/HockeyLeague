@@ -1,6 +1,6 @@
 // api/yahoo-callback.js
 
-// This function now securely stores the refresh token in a cookie and redirects.
+// This function now securely stores the refresh token in a cookie with a more compatible security policy.
 export default async function handler(req, res) {
     const { code, error } = req.query;
 
@@ -46,10 +46,9 @@ export default async function handler(req, res) {
 
         const tokenData = await response.json();
 
-        // **FIX**: Securely store the refresh_token in an HttpOnly cookie.
-        // This token is long-lived and allows us to get new access tokens in the future.
-        // Max-Age is set to 1 year in seconds.
-        res.setHeader('Set-Cookie', `yahoo_refresh_token=${tokenData.refresh_token}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=31536000`);
+        // **FIX**: Changed SameSite from 'Strict' to 'Lax'.
+        // This is a more compatible setting that ensures the cookie is sent correctly from all pages on your site.
+        res.setHeader('Set-Cookie', `yahoo_refresh_token=${tokenData.refresh_token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=31536000`);
 
         // Redirect the user back to the admin panel with a success flag.
         res.redirect(302, '/admin.html?yahoo_connected=true');
