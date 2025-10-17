@@ -1,6 +1,6 @@
 // api/get-yahoo-data.js
 
-// [FINAL, MOST ROBUST VERSION] This version uses a multi-layered parsing strategy to handle multiple possible data formats from the Yahoo API.
+// [FINAL, ROBUST VERSION] This version uses a much safer parsing method to handle Yahoo's inconsistent API responses.
 
 async function getAccessToken(refreshToken) {
     const clientId = process.env.YAHOO_CLIENT_ID;
@@ -25,7 +25,8 @@ async function getAccessToken(refreshToken) {
     return tokenData.access_token;
 }
 
-// A helper function that intelligently flattens Yahoo's complex array-of-objects structure.
+// **NEW, SAFER PARSER**: This helper function converts Yahoo's array of single-key objects into one simple object.
+// E.g., [ {name: 'Team A'}, {rank: 1} ] becomes { name: 'Team A', rank: 1 }
 const flattenYahooObjectArray = (arr) => {
     if (!Array.isArray(arr)) return {};
     return arr.reduce((acc, curr) => {
