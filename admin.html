@@ -8,8 +8,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-    <link href="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-lite.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-lite.min.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #000000; }
         .card { background-color: #111111; border: 1px solid #333333; }
@@ -17,14 +15,13 @@
         .admin-btn, .btn-primary, .btn-secondary, .btn-danger { padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
         .admin-btn { background-color: transparent; border: 1px solid #FFD700; color: #FFD700; }
         .admin-btn:hover:not(:disabled) { background-color: rgba(255, 215, 0, 0.1); }
-        .btn-primary { background-color: #DC143C; color: white; border: 1px solid #DC143C; }
+        .btn-primary { background-color: #DC143C; color: white; border: 1px solid #DC143C; text-align: center; display: block; }
         .btn-primary:hover { background-color: #b81030; }
         .btn-secondary { background-color: #333; color: white; border: 1px solid #333; }
         .btn-secondary:hover:not(:disabled) { background-color: #444; }
         .btn-danger { background-color: #b91c1c; color: white; }
         .form-input { background-color: #222; border: 1px solid #444; color: white; border-radius: 6px; padding: 8px 12px; width: 100%; }
         .modal-backdrop { background-color: rgba(0,0,0,0.7); }
-        .note-editor.note-frame { border-color: #444; } .note-toolbar { background-color: #222; border-bottom-color: #444; } .note-btn { color: #ddd; background-color: transparent; border-color: transparent; } .note-btn:hover, .note-btn:focus, .note-btn:active { color: #fff; background-color: #333; } .note-editable { background-color: #111; color: #ddd; } .note-popover .popover-content, .note-toolbar { background-color: #222; border-color: #444; } .note-popover .popover-content .note-btn, .note-toolbar .note-btn { color: #ddd; } .note-popover .popover-content .note-btn:hover, .note-toolbar .note-btn:hover { background-color: #333; } .dropdown-menu { background-color: #222; border-color: #444; } .dropdown-menu > li > a { color: #ddd; } .dropdown-menu > li > a:hover { background-color: #333; color: #fff; }
     </style>
 </head>
 <body class="text-gray-300">
@@ -42,77 +39,49 @@
     <main id="admin-panel" class="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 hidden">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="card p-6">
-                <h2 class="text-xl font-bold text-white mb-4">Manage League Data</h2>
+                <h2 class="text-xl font-bold text-white mb-4">Manage League Data (Manual)</h2>
                 <div class="space-y-4">
+                    <p class="text-sm text-gray-400">Manually edit teams, matchups, and other site data.</p>
                     <button onclick="toggleTeamManagerModal(true)" class="w-full btn-secondary">Manage Teams</button>
                     <button onclick="addMatchup()" class="w-full btn-secondary">Manage Matchups</button>
                 </div>
             </div>
              <div class="card p-6">
-                <h2 class="text-xl font-bold text-white mb-4">Manage Page Content</h2>
+                <h2 class="text-xl font-bold text-white mb-4">Yahoo Fantasy API</h2>
                 <div class="space-y-4">
-                     <button id="content-editor-btn" class="w-full btn-secondary">Edit Homepage Content</button>
+                    <p class="text-sm text-gray-400">Connect your Yahoo account to automatically sync league data.</p>
+                    <a href="/api/yahoo-login" class="w-full btn-primary">Connect Yahoo Account</a>
                 </div>
             </div>
-        </div>
-        <div id="editable-content-area" class="mt-8 hidden">
-             <div id="matchups-header" class="editable-content p-1"></div>
-             <div id="standings-header" class="editable-content p-1 mt-4"></div>
         </div>
     </main>
     
     <div id="admin-login-modal" class="fixed inset-0 z-50 items-center justify-center flex modal-backdrop"><div class="card no-hover p-8 rounded-lg w-full max-w-sm"><h2 class="text-2xl font-bold text-white mb-4">Admin Login</h2><p id="login-error" class="text-red-500 text-sm mb-4 hidden">Invalid password.</p><form id="login-form"><input id="password-input" type="password" class="form-input mb-4" placeholder="Enter password..."><div class="flex justify-end space-x-4"><button type="button" onclick="window.location.href='index.html'" class="btn-secondary">Cancel</button><button type="submit" class="btn-primary">Login</button></div></form></div></div>
+    <!-- Other modals will be here -->
     <div id="edit-matchup-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop"><!--...--></div>
     <div id="team-manager-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop"><!--...--></div>
     <div id="edit-team-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop"><!--...--></div>
     <div id="confirmation-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop"><!--...--></div>
 
     <script>
-        let leagueData={},pageContent={},isAdmin=!1,isEditingContent=!1;
-        const defaultData = { /* ... */ };
+        let leagueData={},pageContent={},isAdmin=!1;
+        
         document.addEventListener('DOMContentLoaded', () => {
             checkAdminState();
             if (isAdmin) {
                 document.getElementById('admin-login-modal').style.display = 'none';
                 document.getElementById('admin-panel').classList.remove('hidden');
                 loadData();
-                loadContent();
-                document.getElementById('content-editor-btn').addEventListener('click', toggleContentEditor);
             }
              document.getElementById('login-form').addEventListener('submit', handleLogin);
         });
         function checkAdminState(){if("true"===sessionStorage.getItem("isAdmin"))isAdmin=!0}
         function handleLogin(e){e.preventDefault();if("foxandhounds"===document.getElementById("password-input").value){isAdmin=!0,sessionStorage.setItem("isAdmin","true"),window.location.reload()}}
         function logout(){isAdmin=!1,sessionStorage.removeItem("isAdmin"),window.location.href="index.html"}
-        function loadData(){const e=localStorage.getItem("foxAndHoundsData");leagueData=e?JSON.parse(e):JSON.parse(JSON.stringify(defaultData))}
+        function loadData(){const e=localStorage.getItem("foxAndHoundsData");leagueData=e?JSON.parse(e):{teams:[], matchups:[]}}
         function saveData(){localStorage.setItem("foxAndHoundsData",JSON.stringify(leagueData))}
-        function loadContent(){
-            const e=localStorage.getItem("foxAndHoundsContent");
-            pageContent=e?JSON.parse(e):{};
-            document.getElementById('matchups-header').innerHTML = pageContent['matchups-header'] || '<h2 class="text-2xl font-semibold text-white">Weekly Matchups</h2>';
-            document.getElementById('standings-header').innerHTML = pageContent['standings-header'] || '<h2 class="text-2xl font-semibold text-white">League Standings</h2>';
-        }
-        function toggleContentEditor() {
-            isEditingContent = !isEditingContent;
-            const btn = document.getElementById('content-editor-btn');
-            const editorArea = document.getElementById('editable-content-area');
-            btn.textContent = isEditingContent ? 'Save & Exit Editor' : 'Edit Homepage Content';
-            editorArea.classList.toggle('hidden');
-            if (isEditingContent) {
-                $('.editable-content').summernote({
-                    focus: true,
-                    toolbar: [['style', ['bold', 'italic', 'underline']],['para', ['ul', 'ol']],['insert', ['link']]]
-                });
-            } else {
-                document.querySelectorAll('.editable-content').forEach(el => {
-                    pageContent[el.id] = $(el).summernote('code');
-                    $(el).summernote('destroy');
-                });
-                localStorage.setItem('foxAndHoundsContent', JSON.stringify(pageContent));
-                alert("Content saved!");
-            }
-        }
-        // ALL OTHER MODAL/DATA FUNCTIONS GO HERE
+        
+        // --- ALL MANUAL DATA/MODAL FUNCTIONS GO HERE ---
     </script>
 </body>
 </html>
